@@ -1,8 +1,10 @@
-# Pig Documentation
+<img width="2529" alt="Colored Pig (1)" src="https://github.com/user-attachments/assets/609466bf-f338-47e1-be4e-a97e6ce42e5c" />
 
-Pig is an API to launch and automate Windows apps. 
+# Pig Docs
 
-Plug this SDK into your AI Agent apps to give them a computer!
+Pig is an API to launch and automate Windows apps. Plug this SDK into your AI Agent apps to give them a computer!
+
+---
 
 > **Warning**: This API and associated infrastructure are currently in alpha and will likely undergo changes.
 
