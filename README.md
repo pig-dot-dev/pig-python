@@ -1,8 +1,8 @@
 # Pig Documentation
 
-Pig is a platform that gives your AI agents the power to directly interact with Windows computers.
+Pig is an API to launch and automate Windows apps. 
 
-This repo is the Python SDK and CLI for interacting with Pig's API.
+Plug this SDK into your AI Agent apps to give them a computer!
 
 > **Warning**: This API and associated infrastructure are currently in alpha and will likely undergo changes.
 
