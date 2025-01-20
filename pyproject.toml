@@ -30,7 +30,11 @@ packages = ["src/pig"]
 # .[dev]
 
 [project.optional-dependencies]
-dev = ["ruff>=0.3.0"]
+dev = [
+    "ruff>=0.3.0",
+    "twine",
+    "build"
+]
 
 [tool.ruff]
 include = ["src/pig/**/*.py", "tests/**/*.py"]
