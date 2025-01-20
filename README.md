@@ -1,12 +1,13 @@
-# Pig SDK Documentation
+# Pig Documentation
 
-The Pig SDK provides a Python interface for starting and interacting with Pig Windows VMs.
+Pig is a platform that gives your AI agents the power to run Windows VMs.
+This repo is the Python SDK and CLI for interacting with Pig's API.
 
-> **Warning**: This API and associated infrastructure is currently in alpha and will likely undergo changes. Use at your own discretion.
+> **Warning**: This API and associated infrastructure are currently in alpha and will likely undergo changes. Use at your own discretion.
 
 ## Table of Contents
 
-- [Pig SDK Documentation](#pig-sdk-documentation)
+- [Pig Documentation](#pig-documentation)
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
   - [Quick Start Guide](#quick-start-guide)
