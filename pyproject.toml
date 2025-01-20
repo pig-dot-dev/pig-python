@@ -1,0 +1,50 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pig-python"
+version = "0.0.4"
+authors = [
+    { name = "Erik Dunteman", email = "erik@pig.dev" },
+]
+description = "pig"
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    "requests>=2.0.0",
+    "click>=8.0.0",
+    "tabulate>=0.9.0",
+    "iso8601>=1.0.0",
+]
+
+[project.scripts]
+pig = "pig.cli:main"
+
+[tool.hatch.build]
+packages = ["src"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pig"] 
+
+# .[dev]
+
+[project.optional-dependencies]
+dev = ["ruff>=0.3.0"]
+
+[tool.ruff]
+include = ["src/pig/**/*.py", "tests/**/*.py"]
+target-version = "py37"
+
+# Enable rules
+lint.select = [
+    "E",  # pycodestyle
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "N",  # pep8-naming
+]
+
+line-length = 160
+lint.ignore = []
+lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
