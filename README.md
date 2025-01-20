@@ -3,7 +3,7 @@
 Pig is a platform that gives your AI agents the power to run Windows VMs.
 This repo is the Python SDK and CLI for interacting with Pig's API.
 
-> **Warning**: This API and associated infrastructure are currently in alpha and will likely undergo changes. Use at your own discretion.
+> **Warning**: This API and associated infrastructure are currently in alpha and will likely undergo changes.
 
 ## Table of Contents
 
@@ -50,6 +50,8 @@ Set up your API key before using the SDK:
 ```bash
 export PIG_SECRET_KEY=your_api_key
 ```
+
+[Apply Here](https://pig.dev/alpha) to get your API key.
 
 ### Basic Usage
 
