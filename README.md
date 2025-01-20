@@ -1,4 +1,4 @@
-<img width="2529" alt="Colored Pig (1)" src="https://github.com/user-attachments/assets/609466bf-f338-47e1-be4e-a97e6ce42e5c" />
+<img width="1300" alt="Colored Pig (1)" src="https://github.com/user-attachments/assets/609466bf-f338-47e1-be4e-a97e6ce42e5c" />
 
 # Pig Docs
 
