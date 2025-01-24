@@ -99,8 +99,8 @@ async def sampling_loop(
     """
 
     # Create our VM connection
-    vm_id = "YOUR_VM_ID"
-    print("Starting VM with YOUR_VM_ID")
+    vm_id = "VM-YOUR_VM_ID"
+    print(f"Starting VM with {vm_id}")
     conn = VM(id=vm_id).connect()
 
     # Define available LLM tools

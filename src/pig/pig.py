@@ -64,18 +64,22 @@ class APIClient:
             raise APIError(response.status_code, error_msg) from e
 
     def get(self, endpoint: str, expect_json: bool = True) -> Union[Dict[str, Any], requests.Response]:
+        endpoint = endpoint.lstrip("/")
         response = self.session.get(f"{self.base_url}/{endpoint}")
         return self._handle_response(response, expect_json)
 
     def post(self, endpoint: str, data: Optional[Dict[str, Any]] = None, expect_json: bool = True) -> Union[Dict[str, Any], requests.Response]:
+        endpoint = endpoint.lstrip("/")
         response = self.session.post(f"{self.base_url}/{endpoint}", json=data)
         return self._handle_response(response, expect_json)
 
     def put(self, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        endpoint = endpoint.lstrip("/")
         response = self.session.put(f"{self.base_url}/{endpoint}", json=data)
         return self._handle_response(response)
 
     def delete(self, endpoint: str) -> None:
+        endpoint = endpoint.lstrip("/")
         response = self.session.delete(f"{self.base_url}/{endpoint}")
         self._handle_response(response)
 

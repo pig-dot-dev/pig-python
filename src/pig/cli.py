@@ -14,8 +14,8 @@ if not API_KEY:
 def get_vms():
     """Fetch VMs from the API"""
     client = APIClient(base_url=BASE_URL, api_key=API_KEY)
-    team_id = client.get("/teams/me")
-    return client.get(f"/teams/{team_id}/vms")
+    team_id = client.get("teams/me")
+    return client.get(f"teams/{team_id}/vms")
 
 def print_vms(vms, show_terminated=False):
     """Display VMs in a formatted way"""
