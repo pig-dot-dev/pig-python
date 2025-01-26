@@ -1,6 +1,7 @@
 import os
 import time
 from typing import Any, Dict, Optional, Tuple, Union
+import logging
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -33,14 +34,15 @@ class APIClient:
         self.base_url = base_url.rstrip('/')
         self.api_key = api_key
         self.session = self._create_session()
-        self._team_id = None
 
     def _create_session(self) -> requests.Session:
         session = requests.Session()
         retry_strategy = Retry(
-            total=3,
-            backoff_factor=1,
-            status_forcelist=[500, 502, 503, 504]
+            total=None,  
+            status_forcelist=[503],
+            respect_retry_after_header=True,
+            raise_on_status=[500, 502, 504],
+            allowed_methods=None,
         )
         adapter = HTTPAdapter(max_retries=retry_strategy)
         session.mount("http://", adapter)
@@ -83,18 +85,13 @@ class APIClient:
         response = self.session.delete(f"{self.base_url}/{endpoint}")
         self._handle_response(response)
 
-    @property
-    def team_id(self) -> str:
-        if self._team_id is None:
-            self._team_id = self.get("teams/me")
-        return self._team_id
-
 class Connection:
     """Represents an active connection to a VM"""
-    def __init__(self, id: str, api_client: APIClient, vm_id: str) -> None:
+    def __init__(self, id: str, api_client: APIClient, logger: logging.Logger, vm_id: str) -> None:
         self.api = api_client
         self.vm_id = vm_id
         self.id = id
+        self._logger = logger
 
     @property
     def width(self) -> int:
@@ -108,19 +105,18 @@ class Connection:
 
     def yield_control(self) -> None:
         """Yield control of the VM to a human operator"""
-        self.api.put(f"vms/{self.vm_id}/rdp-connections/{self.id}/block_bot/true")
-        print("\nControl has been yielded. \nNavigate to the following URL in your browser to resolve and grant control back to the SDK:")
-        print(f"-> \033[95m{UI_BASE_URL}/vms/{self.vm_id}/rdp-connections/{self.id}\033[0m")
-
+        self.api.put(f"vms/{self.vm_id}/pause_bots/true")
+        self._logger.info("\nControl has been yielded. \nNavigate to the following URL in your browser to resolve and grant control back to the SDK:")
+        self._logger.info(f"-> \033[95m{UI_BASE_URL}/app/vms/{self.vm_id}?connectionId={self.id}\033[0m")
 
     def await_control(self) -> None:
         """Awaits for control of the VM to be given back to the bot"""
         min_sleep = 1
-        max_sleep = 10 # seconds
+        max_sleep = 10
         sleeptime = min_sleep
         while True:
-            conn = self.api.get(f"vms/{self.vm_id}/rdp-connections/{self.id}")
-            if not conn["block_bot"]:
+            vm = self.api.get(f"vms/{self.vm_id}")
+            if not vm["pause_bots"]:
                 break
             time.sleep(sleeptime)
             sleeptime += 1
@@ -129,29 +125,29 @@ class Connection:
 
     def key(self, combo: str) -> None:
         """Send a XDO key combo to the VM. Examples: 'a', 'Return', 'alt+Tab', 'ctrl+c ctrl+v'"""
-        self.api.post(f"vms/{self.vm_id}/rdp-connections/{self.id}/key", data={
+        self.api.post(f"vms/{self.vm_id}/key?connection_id={self.id}", data={
             "string": combo,
         })
 
     def type(self, text: str) -> None:
         """Type text into the VM"""
-        self.api.post(f"vms/{self.vm_id}/rdp-connections/{self.id}/type", data={
+        self.api.post(f"vms/{self.vm_id}/type?connection_id={self.id}", data={
             "string": text,
         })
 
     def cursor_position(self) -> Tuple[int, int]:
         """Get the current cursor position"""
-        response = self.api.get(f"vms/{self.vm_id}/rdp-connections/{self.id}/cursor_position")
+        response = self.api.get(f"vms/{self.vm_id}/cursor_position?connection_id={self.id}")
         return response["x"], response["y"]
         
     def mouse_move(self, x: int, y: int) -> None:
         """Move mouse to specified coordinates"""
-        self.api.post(f"vms/{self.vm_id}/rdp-connections/{self.id}/mouse_move", data={
+        self.api.post(f"vms/{self.vm_id}/mouse_move?connection_id={self.id}", data={
             "x": x,
             "y": y,
         })
 
-    def left_click(self, x: int | None = None, y: int | None = None) -> None:
+    def left_click(self, x: Optional[int] = None, y: Optional[int] = None) -> None:
         """Left click at specified coordinates"""
         self._mouse_click("left", True, x, y)
         time.sleep(0.1)
@@ -159,16 +155,13 @@ class Connection:
 
     def left_click_drag(self, x: int, y: int) -> None:
         """Left click at current cursor position and drag to specified coordinates"""
-        # Press
         self._mouse_click("left", True)
         time.sleep(0.1)
-        # drag to destination
         self.mouse_move(x, y)
         time.sleep(0.1)
-        # Release
         self._mouse_click("left", False, x, y)
 
-    def double_click(self, x: int | None = None, y: int | None = None) -> None:
+    def double_click(self, x: Optional[int] = None, y: Optional[int] = None) -> None:
         """Double click at specified coordinates"""
         self._mouse_click("left", True, x, y)
         time.sleep(0.1)
@@ -178,18 +171,14 @@ class Connection:
         time.sleep(0.1)
         self._mouse_click("left", False, x, y)
 
-    def right_click(self, x: int | None = None, y: int | None = None) -> None:
+    def right_click(self, x: Optional[int] = None, y: Optional[int] = None) -> None:
         """Right click at specified coordinates"""
         self._mouse_click("right", True, x, y)
         time.sleep(0.1)
         self._mouse_click("right", False, x, y)
 
-    # def middle_click(self, x: int, y: int) -> None:
-    #     """Middle click at specified coordinates"""
-    #     raise NotImplementedError("middle_click() is not implemented yet")
-
-    def _mouse_click(self, button: str, down: bool, x: int | None = None, y: int | None = None) -> None:
-        self.api.post(f"vms/{self.vm_id}/rdp-connections/{self.id}/mouse_click", data={
+    def _mouse_click(self, button: str, down: bool, x: Optional[int] = None, y: Optional[int] = None) -> None:
+        self.api.post(f"vms/{self.vm_id}/mouse_click?connection_id={self.id}", data={
             "button": button,
             "down": down,
             "x": x,
@@ -198,7 +187,7 @@ class Connection:
 
     def screenshot(self) -> bytes:
         """Take a screenshot of the VM"""
-        response = self.api.get(f"vms/{self.vm_id}/rdp-connections/{self.id}/screenshot", expect_json=False)
+        response = self.api.get(f"vms/{self.vm_id}/screenshot?connection_id={self.id}", expect_json=False)
         return response.content
 
 class VMSession:
@@ -237,7 +226,7 @@ class Windows:
 
 class VM:
     """Main class for VM management"""
-    def __init__(self, id: Optional[str] = None, image: Optional[Windows] = None, temporary: bool = False, api_key: Optional[str] = None) -> None:
+    def __init__(self, id: Optional[str] = None, image: Optional[Windows] = None, temporary: bool = False, api_key: Optional[str] = None, log_level: str = "INFO") -> None:
         self.api_key = api_key or os.environ.get("PIG_SECRET_KEY")
         if not self.api_key:
             raise ValueError("API key must be provided either as argument or PIG_SECRET_KEY environment variable")
@@ -246,6 +235,12 @@ class VM:
         self._id = id
         self._temporary = temporary
         self._image = image
+
+        self._logger = logging.getLogger(f"pig-{id}")
+        self._logger.setLevel(log_level)
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter('%(message)s'))
+        self._logger.handlers = [handler]
 
         if id and temporary:
             raise ValueError("Cannot use an existing VM as a temporary VM, since temporary VMs are destroyed after use.")
@@ -260,47 +255,44 @@ class VM:
             raise VMError("VM already exists")
 
         data = self._image._to_dict() if self._image else None
-        response = self.api.post(f"teams/{self.api.team_id}/vms", data=data)
+        response = self.api.post("vms", data=data)
         self._id = response[0]["id"]
         return self._id
 
     def connect(self) -> Connection:
         """Connect to the VM, creating it if necessary"""
         if not self._id:
-            self.create() # creates a new VM if not exists
+            self.create()
 
-        # Get VM status
-        vm = self.api.get(f"teams/{self.api.team_id}/vms/{self._id}")
+        vm = self.api.get(f"vms/{self._id}")
         if vm["status"] == "Terminated":
             raise VMError(f"VM {self._id} is terminated")
 
-        # Start VM if needed
         if vm["status"] == "Stopped":
             self.start()
 
-        # Create RDP connection
-        response = self.api.post(f"vms/{self._id}/rdp-connections")
-        print("Connected to VM, watch the desktop here:")
-        print(f"-> \033[95m{UI_BASE_URL}/vms/{self._id}/rdp-connections/{response[0]['id']}\033[0m")
-        return Connection(response[0]["id"], self.api, self._id )
+        response = self.api.post(f"vms/{self._id}/connections")
+        self._logger.info("Connected to VM, watch the desktop here:")
+        self._logger.info(f"-> \033[95m{UI_BASE_URL}/app/vms/{self._id}?connectionId={response[0]['id']}\033[0m")
+        return Connection(response[0]["id"], self.api, self._logger, self._id)
 
     def start(self) -> None:
         """Start the VM"""
         if not self._id:
             raise VMError("VM not created")
-        self.api.put(f"teams/{self.api.team_id}/vms/{self._id}/state/start")
+        self.api.put(f"vms/{self._id}/state/start")
 
     def stop(self) -> None:
         """Stop the VM"""
         if not self._id:
             raise VMError("VM not created")
-        self.api.put(f"teams/{self.api.team_id}/vms/{self._id}/state/stop")
+        self.api.put(f"vms/{self._id}/state/stop")
 
     def terminate(self) -> None:
         """Terminate and delete the VM"""
         if not self._id:
             raise VMError("VM not created")
-        self.api.delete(f"teams/{self.api.team_id}/vms/{self._id}")
+        self.api.delete(f"vms/{self._id}")
 
     @property
     def id(self) -> Optional[str]:
