@@ -254,6 +254,17 @@ class VMSession:
         self.vm = vm
         self.connection = None
 
+    def __enter__(self) -> Connection:
+        self.connection = self.vm.connect()
+        return self.connection
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        if self.connection:
+            if self.vm._temporary:
+                self.vm.terminate()
+            else:
+                self.vm.stop()
+
     async def __aenter__(self) -> Connection:
         self.connection = await self.vm.connect.aio()
         return self.connection
