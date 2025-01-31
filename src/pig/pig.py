@@ -62,7 +62,7 @@ class APIClient:
                 "X-Client-Language": "python",
                 "X-Client-Version": __version__,
             },
-            timeout=ClientTimeout(total=90),  # 15 minute total timeout
+            timeout=ClientTimeout(total=900),  # 15 minute total timeout
         )
 
         retry_client = RetryClient(client_session=session, retry_options=retry_options)
