@@ -27,7 +27,7 @@ Pig is an API to launch and automate Windows apps. Plug this SDK into your AI Ag
       - [Mouse Operations](#mouse-operations)
       - [Keyboard Operations](#keyboard-operations)
       - [Screen Operations](#screen-operations)
-    - [Scripting](#scripting)
+      - [Scripting](#scripting)
       - [Control Management](#control-management)
   - [Advanced Usage](#advanced-usage)
     - [Async](#async)
@@ -188,7 +188,7 @@ A Connection has the following methods:
 - `width -> int`: Get VM width (1024)
 - `height -> int`: Get VM height (768)
 
-### Scripting
+#### Scripting
 - `cmd(command: str, close_after: bool = False)`: Sends a workflow to the VM to open a cmd terminal and input a command. Close_after to close the terminal after running the script. Otherwise the terminal window will remain open.
 - `powershell(command: str, close_after: bool = False)`: Sends a workflow to the VM to open a powershell terminal and input a command. Close_after to close the window after running the script. Otherwise the powershell window will remain open.
 
