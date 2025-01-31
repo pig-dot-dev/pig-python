@@ -295,7 +295,7 @@ def snapshot(vm, tag):
         return
 
     click.echo(f"Snapshotting VM\t{vm}...")
-    response = snapshot_image(vm, tag)
+    response = asyncio.run(snapshot_image(vm, tag))
     click.echo(f"Created Image\t{response['id']}")
 
 
