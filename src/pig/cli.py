@@ -78,7 +78,7 @@ def prompt_for_vm_id(exclude=None):
     return vms[choice]["id"]
 
 
-def prompt_for_all(action, exclude=None):
+def prompt_for_all(action, auto_approve, exclude=None):
     """ "For when user passes in the -a flag"""
     vms = asyncio.run(get_vms())
     target_vms = [vm for vm in vms if vm["status"].lower() != "terminated"]
@@ -87,8 +87,9 @@ def prompt_for_all(action, exclude=None):
     if len(target_vms) == 0:
         click.echo(f"All VMs in your account are already {exclude}")
         return []
-    if not prompt_confirm(f"You're about to {action} {len(target_vms)} VM{'' if len(target_vms) == 1 else 's'}."):
-        return []
+    if not auto_approve:
+        if not prompt_confirm(f"You're about to {action} {len(target_vms)} VM{'' if len(target_vms) == 1 else 's'}."):
+            return []
     return [vm["id"] for vm in target_vms]
 
 
@@ -178,10 +179,11 @@ def connect(id):
 @cli.command()
 @click.argument("ids", nargs=-1, required=False)
 @click.option("--all", "-a", is_flag=True, help="Start all VMs")
-def start(ids, all):
+@click.option("-y", "auto_approve", is_flag=True, help="Skip confirmation prompt")
+def start(ids, all, auto_approve):
     """Start an existing VM"""
     if all:
-        ids = prompt_for_all("start", exclude="Running")
+        ids = prompt_for_all("start", auto_approve, exclude="Running")
         if len(ids) == 0:
             return
     if not ids and not all:
@@ -208,13 +210,14 @@ def start(ids, all):
 @cli.command()
 @click.argument("ids", nargs=-1, required=False)
 @click.option("--all", "-a", is_flag=True, help="Stop all VMs")
-def stop(ids, all):
+@click.option("-y", "auto_approve", is_flag=True, help="Skip confirmation prompt")
+def stop(ids, all, auto_approve):
     """Stop an existing VM"""
     if all:
-        ids = prompt_for_all("stop", exclude="Stopped")
+        ids = prompt_for_all("stop", auto_approve, exclude="Stopped")
         if len(ids) == 0:
             return
-    if not ids:
+    if not ids and not all:
         ids = [prompt_for_vm_id(exclude="Stopped")]
         if ids[0] is None:
             return
@@ -237,13 +240,14 @@ def stop(ids, all):
 @cli.command()
 @click.argument("ids", nargs=-1, required=False)
 @click.option("--all", "-a", is_flag=True, help="Terminate all VMs")
-def terminate(ids, all):
+@click.option("-y", "auto_approve", is_flag=True, help="Skip confirmation prompt")
+def terminate(ids, all, auto_approve):
     """Terminate an existing VM"""
     if all:
-        ids = prompt_for_all("terminate")
+        ids = prompt_for_all("terminate", auto_approve)
         if len(ids) == 0:
             return
-    if not ids:
+    if not ids and not all:
         ids = [prompt_for_vm_id()]
         if ids[0] is None:
             return
@@ -289,10 +293,12 @@ def ls(all):  # noqa: F811
 @img.command()
 @click.option("--vm", required=True, help="VM ID to snapshot")
 @click.option("--tag", "-t", required=True, help='Tag (name) for the snapshot. Example: --tag my_snapshot or --tag "My Snapshot"')
-def snapshot(vm, tag):
+@click.option("-y", "auto_approve", is_flag=True, help="Skip confirmation prompt")
+def snapshot(vm, tag, auto_approve):
     """Take a snapshot of a running VM"""
-    if not prompt_confirm("This will take up to 15 minutes to complete, and will permanently terminate the parent VM."):
-        return
+    if not auto_approve:
+        if not prompt_confirm("This will take up to 15 minutes to complete, and will permanently terminate the parent VM."):
+            return
 
     click.echo(f"Snapshotting VM\t{vm}...")
     response = asyncio.run(snapshot_image(vm, tag))
