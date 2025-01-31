@@ -30,6 +30,7 @@ Pig is an API to launch and automate Windows apps. Plug this SDK into your AI Ag
     - [Scripting](#scripting)
       - [Control Management](#control-management)
   - [Advanced Usage](#advanced-usage)
+    - [Async](#async)
     - [Custom Image Configuration](#custom-image-configuration)
     - [Temporary VM Sessions](#temporary-vm-sessions)
   - [Configuration](#configuration)
@@ -196,6 +197,22 @@ A Connection has the following methods:
 - `await_control()`: Wait for control to be returned to the agent.
 
 ## Advanced Usage
+
+### Async
+All methods on VM and Connection can be made async by adding `.aio()` to the method call.
+
+For example:
+```python
+from pig import VM
+async def main():
+
+    vm = VM()
+    await vm.create.aio()
+
+    async with vm.session.aio() as conn:
+        await conn.left_click.aio(x=100, y=100)
+        await conn.type.aio("Hello, World!")
+```
 
 ### Custom Image Configuration
 
