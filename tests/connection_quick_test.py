@@ -8,12 +8,11 @@ def main():
 
     vm = VM(id=args.vmid)
     conn = vm.connect()
-    conn.left_click(100, 100)
-    conn.type("Hello World")
-    conn.right_click(200, 200)
-    conn.screenshot()
-    # conn.yield_control()
-    # conn.await_control()
-
+    
+    # Open search using key shortcut
+    conn.key("h e l l o")
+    # conn.cmd("dir")
+    # conn.powershell("ls", close_after=True)
+    
 if __name__ == "__main__":
    main()

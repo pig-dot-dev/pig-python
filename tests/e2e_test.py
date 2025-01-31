@@ -1,6 +1,7 @@
 import time
+import asyncio
 
-from pig import VM, APIError
+from pig import VM, APIError, Connection
 
 
 def test_e2e():
@@ -138,9 +139,40 @@ def test_e2e():
     print(".start()")
     vm.start()
     print("VM ID {vm.id} restarted")
-    print(".terminate()")
     vm.terminate()
-    print("Done")
+    print(f"VM ID {vm.id} terminated")
+
+    # Case 8: using async versions of the client
+    print("\nCase 8: using async versions of the client")
+    async def do_it():
+        vm = VM(temporary=True)
+        print("await vm.connect.aio()")
+        conn = await vm.connect.aio()
+        assert(vm.id is not None)
+        print(f"VM ID {vm.id} connected in async connection (implicit)")
+        print("await asyncio.gather of click.aio, type.aio, mouse_move.aio")
+        await asyncio.gather(
+            conn.left_click.aio(x=330, y=750),
+            conn.type.aio("excel"),
+            conn.mouse_move.aio(x=500, y=750),
+        )
+
+        # Starting session
+        print("entering async .session.aio()")
+        async with vm.session.aio() as conn:
+            assert(vm.id is not None)
+            print(f"VM ID {vm.id} connected in async context manager")
+            print("await asyncio.gather of click.aio, type.aio, mouse_move.aio")
+            await asyncio.gather(
+                conn.left_click.aio(x=330, y=750),
+                conn.type.aio("excel"),
+                conn.mouse_move.aio(x=500, y=750),
+            )
+
+            print("exiting .session()")
+    asyncio.run(do_it())
+    print("done with async")
+        
 
 if __name__ == "__main__":
     test_e2e()

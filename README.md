@@ -10,7 +10,7 @@ Pig is an API to launch and automate Windows apps. Plug this SDK into your AI Ag
 
 ## Table of Contents
 
-- [Pig Documentation](#pig-documentation)
+- [Pig Docs](#pig-docs)
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
   - [Quick Start Guide](#quick-start-guide)
@@ -28,7 +28,6 @@ Pig is an API to launch and automate Windows apps. Plug this SDK into your AI Ag
       - [Keyboard Operations](#keyboard-operations)
       - [Screen Operations](#screen-operations)
       - [Control Management](#control-management)
-    - [Windows Class](#windows-class)
   - [Advanced Usage](#advanced-usage)
     - [Custom Image Configuration](#custom-image-configuration)
     - [Temporary VM Sessions](#temporary-vm-sessions)
@@ -144,7 +143,7 @@ VM(
     id: Optional[str] = None,           # Optionally attach to existing VM.
                                         # If none, new VM will be created.
 
-    image: Optional[Windows] = None,    # OS image configuration
+    image: Optional[Union[Windows, str]] = None,    # OS image configuration
     temporary: bool = False,            # If True, terminates VM after session
     api_key: Optional[str] = None       # API key (alternative to env var)
 )
@@ -188,28 +187,36 @@ A Connection has the following methods:
 - `yield_control()`: Transfer control to human operator. This makes all future interactions error until a button is clicked in the UI to grant control back to the agent.
 - `await_control()`: Wait for control to be returned to the agent.
 
-### Windows Class
-
-Configures Windows VM images.
-
-```python
-Windows(version: str = "2025")
-    .install(application: str) -> Windows  # Chain multiple installations
-```
-
 ## Advanced Usage
 
 ### Custom Image Configuration
 
-```python
-img = (
-    Windows(version="2025")
-    .install("Office") # Office is currently the only supported application.
-)
+You can create custom VM images to use.
+1. Connect to a machine from your desired base image.
+2. Install your desired applications and configuration.
+3. Use the below CLI command to snapshot the VM into a new image
 
-vm = VM(image=img)
+```bash
+# Snapshot VM into image
+pig img snapshot --vm YOUR_VM_ID -t YOUR_CHOSEN_NAME
+
+# View your images
+pig img ls
+```
+
+Future VMs may then be created from these images 
+
+via CLI:
+```bash
+pig create -i IMAGE_ID
+```
+
+or via the SDK:
+```python
+vm = VM(image="IMAGE_ID")
 vm.create()
 ```
+
 
 ### Temporary VM Sessions
 
