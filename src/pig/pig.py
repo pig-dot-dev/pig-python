@@ -54,6 +54,7 @@ class APIClient:
             max_timeout=60,  # Max delay of 60 seconds between retries
             factor=1.3,  # Exponential backoff factor
             statuses={503},  # Only retry on 503 status
+            retry_all_server_errors=False,
         )
 
         session = ClientSession(
@@ -71,31 +72,31 @@ class APIClient:
 
     async def _handle_response(self, response: ClientResponse, expect_json: bool = True) -> Union[Dict[str, Any], bytes]:
         try:
-            response.raise_for_status()
-
-            # If no content, return empty dict
+            if response.status >= 400:
+                error_body = await response.text()
+                try:
+                    error_json = await response.json()
+                    error_msg = error_json.get('detail', error_body)
+                except Exception:
+                    error_msg = error_body
+                raise APIError(response.status, error_msg)
+                
+            # Handle successful responses
             if not response.content or response.content_length == 0:
                 return {}
 
-            # if we're expecting json
             if expect_json:
                 if not response.content_type.startswith("application/json"):
                     raise APIError(response.status, f"Expected JSON response but got content-type: {response.content_type}")
                 return await response.json() if response.content else {}
 
-            # else it's a stream reader. Drain it
             body = await response.read()
             return body
 
-        except ClientResponseError as e:
-            error_msg = str(e)
-            if response.content:
-                try:
-                    if response.content_type.startswith("application/json"):
-                        error_msg = (await response.json()).get("detail", str(e))
-                except:  # noqa: E722
-                    pass
-            raise APIError(response.status, error_msg) from e
+        except APIError:
+            raise
+        except Exception as e:
+            raise APIError(response.status, str(e)) from e
 
     async def get(self, endpoint: str, expect_json: bool = True) -> Union[Dict[str, Any], ClientResponse]:
         endpoint = endpoint.lstrip("/")
