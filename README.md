@@ -27,6 +27,7 @@ Pig is an API to launch and automate Windows apps. Plug this SDK into your AI Ag
       - [Mouse Operations](#mouse-operations)
       - [Keyboard Operations](#keyboard-operations)
       - [Screen Operations](#screen-operations)
+    - [Scripting](#scripting)
       - [Control Management](#control-management)
   - [Advanced Usage](#advanced-usage)
     - [Custom Image Configuration](#custom-image-configuration)
@@ -130,6 +131,8 @@ Available Commands:
 - `pig start <vm_id>`: Start a specific VM
 - `pig stop <vm_id>`: Stop a specific VM
 - `pig terminate <vm_id>`: Terminate and delete a VM
+- `pig img ls`: List available VM images
+- `pig img snapshot --vm <vm_id> --tag <tag>`: Snapshot an existing VM into a new image. Destroys the parent VM.
 
 ## API Reference
 
@@ -143,9 +146,10 @@ VM(
     id: Optional[str] = None,           # Optionally attach to existing VM.
                                         # If none, new VM will be created.
 
-    image: Optional[Union[Windows, str]] = None,    # OS image configuration
+    image: Optional[Union[Windows, str]] = None, # OS image configuration
     temporary: bool = False,            # If True, terminates VM after session
-    api_key: Optional[str] = None       # API key (alternative to env var)
+    api_key: Optional[str] = None,      # API key (alternative to env var)
+    log_level: str = "INFO",            # Log level for any informational messages
 )
 ```
 
@@ -182,6 +186,10 @@ A Connection has the following methods:
 - `screenshot() -> bytes`: Capture screenshot (BMP format)
 - `width -> int`: Get VM width (1024)
 - `height -> int`: Get VM height (768)
+
+### Scripting
+- `cmd(command: str, close_after: bool = False)`: Sends a workflow to the VM to open a cmd terminal and input a command. Close_after to close the terminal after running the script. Otherwise the terminal window will remain open.
+- `powershell(command: str, close_after: bool = False)`: Sends a workflow to the VM to open a powershell terminal and input a command. Close_after to close the window after running the script. Otherwise the powershell window will remain open.
 
 #### Control Management
 - `yield_control()`: Transfer control to human operator. This makes all future interactions error until a button is clicked in the UI to grant control back to the agent.
