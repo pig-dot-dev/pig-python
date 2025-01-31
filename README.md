@@ -10,7 +10,7 @@ Pig is an API to launch and automate Windows apps. Plug this SDK into your AI Ag
 
 ## Table of Contents
 
-- [Pig Documentation](#pig-documentation)
+- [Pig Docs](#pig-docs)
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
   - [Quick Start Guide](#quick-start-guide)
@@ -27,9 +27,10 @@ Pig is an API to launch and automate Windows apps. Plug this SDK into your AI Ag
       - [Mouse Operations](#mouse-operations)
       - [Keyboard Operations](#keyboard-operations)
       - [Screen Operations](#screen-operations)
+      - [Scripting](#scripting)
       - [Control Management](#control-management)
-    - [Windows Class](#windows-class)
   - [Advanced Usage](#advanced-usage)
+    - [Async](#async)
     - [Custom Image Configuration](#custom-image-configuration)
     - [Temporary VM Sessions](#temporary-vm-sessions)
   - [Configuration](#configuration)
@@ -131,6 +132,8 @@ Available Commands:
 - `pig start <vm_id>`: Start a specific VM
 - `pig stop <vm_id>`: Stop a specific VM
 - `pig terminate <vm_id>`: Terminate and delete a VM
+- `pig img ls`: List available VM images
+- `pig img snapshot --vm <vm_id> --tag <tag>`: Snapshot an existing VM into a new image. Destroys the parent VM.
 
 ## API Reference
 
@@ -144,9 +147,10 @@ VM(
     id: Optional[str] = None,           # Optionally attach to existing VM.
                                         # If none, new VM will be created.
 
-    image: Optional[Windows] = None,    # OS image configuration
+    image: Optional[Union[Windows, str]] = None, # OS image configuration
     temporary: bool = False,            # If True, terminates VM after session
-    api_key: Optional[str] = None       # API key (alternative to env var)
+    api_key: Optional[str] = None,      # API key (alternative to env var)
+    log_level: str = "INFO",            # Log level for any informational messages
 )
 ```
 
@@ -184,32 +188,60 @@ A Connection has the following methods:
 - `width -> int`: Get VM width (1024)
 - `height -> int`: Get VM height (768)
 
+#### Scripting
+- `cmd(command: str, close_after: bool = False)`: Sends a workflow to the VM to open a cmd terminal and input a command. Close_after to close the terminal after running the script. Otherwise the terminal window will remain open.
+- `powershell(command: str, close_after: bool = False)`: Sends a workflow to the VM to open a powershell terminal and input a command. Close_after to close the window after running the script. Otherwise the powershell window will remain open.
+
 #### Control Management
 - `yield_control()`: Transfer control to human operator. This makes all future interactions error until a button is clicked in the UI to grant control back to the agent.
 - `await_control()`: Wait for control to be returned to the agent.
 
-### Windows Class
-
-Configures Windows VM images.
-
-```python
-Windows(version: str = "2025")
-    .install(application: str) -> Windows  # Chain multiple installations
-```
-
 ## Advanced Usage
+
+### Async
+All methods on VM and Connection can be made async by adding `.aio()` to the method call.
+
+For example:
+```python
+from pig import VM
+async def main():
+
+    vm = VM()
+    await vm.create.aio()
+
+    async with vm.session.aio() as conn:
+        await conn.left_click.aio(x=100, y=100)
+        await conn.type.aio("Hello, World!")
+```
 
 ### Custom Image Configuration
 
-```python
-img = (
-    Windows(version="2025")
-    .install("Office") # Office is currently the only supported application.
-)
+You can create custom VM images to use.
+1. Connect to a machine from your desired base image.
+2. Install your desired applications and configuration.
+3. Use the below CLI command to snapshot the VM into a new image
 
-vm = VM(image=img)
+```bash
+# Snapshot VM into image
+pig img snapshot --vm YOUR_VM_ID -t YOUR_CHOSEN_NAME
+
+# View your images
+pig img ls
+```
+
+Future VMs may then be created from these images 
+
+via CLI:
+```bash
+pig create -i IMAGE_ID
+```
+
+or via the SDK:
+```python
+vm = VM(image="IMAGE_ID")
 vm.create()
 ```
+
 
 ### Temporary VM Sessions
 
