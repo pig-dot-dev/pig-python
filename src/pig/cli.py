@@ -280,7 +280,7 @@ def img():
 
 @img.command()
 @click.option("--all", "-a", is_flag=True, help="Show all images, including Pig standard images")
-def ls(all): # noqa: F811
+def ls(all):  # noqa: F811
     """List all images"""
     images = get_images()
     print_images(images, all)
