@@ -1,5 +1,5 @@
-import time
 import asyncio
+import time
 
 from pig import VM, APIError, Connection
 
@@ -10,14 +10,14 @@ def test_e2e():
     # Case 1: manual lifecycle management
     print("\nCase 1: manual lifecycle management")
     print("VM()")
-    vm = VM() # new vm. This doesn't create anything in the db
-    assert(vm.id is None)
+    vm = VM()  # new vm. This doesn't create anything in the db
+    assert vm.id is None
     print(".create()")
-    vm.create() # creates a new VM in the db, assigns id
-    assert(vm.id is not None)
+    vm.create()  # creates a new VM in the db, assigns id
+    assert vm.id is not None
     print(f"VM ID {vm.id} created")
     print(".connect()")
-    conn = vm.connect() # since already created, vm is started, so this just connects to it
+    conn: Connection = vm.connect()  # since already created, vm is started, so this just connects to it
     print(f"VM ID {vm.id} connected")
 
     # Test all connection methods
@@ -27,7 +27,7 @@ def test_e2e():
     conn.left_click(100, 100)
     print("conn.cursor_position()")
     x, y = conn.cursor_position()
-    assert(x == 100 and y == 100)
+    assert x == 100 and y == 100
     print(f"Cursor position: {x}, {y}")
     print("conn.left_click_drag(200, 200)")
     conn.left_click_drag(200, 200)
@@ -36,11 +36,11 @@ def test_e2e():
     print("conn.right_click(400, 400)")
     conn.right_click(400, 400)
     print("conn.screenshot()")
-    ss = conn.screenshot() # calls screenshot under existing connection ID
-    assert(len(ss) > 0)
+    ss = conn.screenshot()  # calls screenshot under existing connection ID
+    assert len(ss) > 0
     print(".stop()")
-    vm.stop() # stops the vm
-    assert(vm.id is not None)
+    vm.stop()  # stops the vm
+    assert vm.id is not None
     print(f"VM ID {vm.id} stopped")
     print("Done")
 
@@ -48,15 +48,15 @@ def test_e2e():
     print("\nCase 2: restarting an existing vm")
     print(f"reusing VM ID {vm.id}")
     print(".start()")
-    vm.start() # starts the vm
-    assert(vm.id is not None)
+    vm.start()  # starts the vm
+    assert vm.id is not None
     print(f"VM ID {vm.id} started")
     print(".connect()")
     conn = vm.connect()
     print(f"VM ID {vm.id} connected")
     print("conn.screenshot()")
     ss = conn.screenshot()
-    assert(len(ss) > 0)
+    assert len(ss) > 0
     print("Done")
 
     # Case 3: trying to start a already running vm
@@ -64,35 +64,35 @@ def test_e2e():
     print(f"reusing VM ID {vm.id}")
     print(".start() - should be instant")
     s = time.time()
-    vm.start() # this should pass without error
-    assert(vm.id is not None)
-    assert(time.time() - s < 5) # should be nearly instant, but set to 5s just in case aws API is slow
+    vm.start()  # this should pass without error
+    assert vm.id is not None
+    assert time.time() - s < 5  # should be nearly instant, but set to 5s just in case aws API is slow
     print(f"VM ID {vm.id} started")
     print(".connect()")
     conn = vm.connect()
     print(f"VM ID {vm.id} connected")
     print("conn.screenshot()")
     ss = conn.screenshot()
-    assert(len(ss) > 0)
+    assert len(ss) > 0
     print("Done")
 
     # Case 4: reinstantiating a new VM object with an existing vm
     print("\nCase 4: reinstantiating a new VM object with an existing vm")
     print(f"reusing VM ID {vm.id} on new VM object")
     vm = VM(id=vm.id)
-    assert(vm.id is not None)
+    assert vm.id is not None
     print(".connect()")
     conn = vm.connect()
     print(f"VM ID {vm.id} connected")
     print("conn.screenshot()")
     ss = conn.screenshot()
-    assert(len(ss) > 0)
+    assert len(ss) > 0
     print("Done")
 
     # Case 5: trying to start a terminated vm
     print("\nCase 5: trying to start a terminated vm")
     print(f"Terminating VM ID {vm.id} to set up test")
-    vm.terminate() # terminates the vm
+    vm.terminate()  # terminates the vm
     print("Test ready, attempting to start terminated vm")
     errored = False
     try:
@@ -106,13 +106,13 @@ def test_e2e():
     # Case 6: using context manager (temporary)
     print("\nCase 6: using context manager and temporary vm")
     print("starting fresh VM")
-    vm = VM(temporary=True) # temporary vm, will be destroyed after use
-    assert(vm.id is None)
+    vm = VM(temporary=True)  # temporary vm, will be destroyed after use
+    assert vm.id is None
     print("entering .session()")
     with vm.session() as conn:
-        assert(vm.id is not None)
+        assert vm.id is not None
         print(f"VM ID {vm.id} connected")
-    
+
         print("exiting .session()")
     # double check that the vm is terminated
     errored = False
@@ -126,11 +126,11 @@ def test_e2e():
 
     # Case 7: using context manager (persistent)
     print("\nCase 7: using context manager and persistent vm")
-    vm = VM() # reuse existing vm
-    assert(vm.id is None)
+    vm = VM()  # reuse existing vm
+    assert vm.id is None
     print("entering .session()")
     with vm.session() as conn:
-        assert(vm.id is not None)
+        assert vm.id is not None
         print(f"VM ID {vm.id} connected")
 
         print("exiting .session()")
@@ -144,11 +144,12 @@ def test_e2e():
 
     # Case 8: using async versions of the client
     print("\nCase 8: using async versions of the client")
+
     async def do_it():
         vm = VM(temporary=True)
         print("await vm.connect.aio()")
-        conn = await vm.connect.aio()
-        assert(vm.id is not None)
+        conn: Connection = await vm.connect.aio()
+        assert vm.id is not None
         print(f"VM ID {vm.id} connected in async connection (implicit)")
         print("await asyncio.gather of click.aio, type.aio, mouse_move.aio")
         await asyncio.gather(
@@ -160,7 +161,7 @@ def test_e2e():
         # Starting session
         print("entering async .session.aio()")
         async with vm.session.aio() as conn:
-            assert(vm.id is not None)
+            assert vm.id is not None
             print(f"VM ID {vm.id} connected in async context manager")
             print("await asyncio.gather of click.aio, type.aio, mouse_move.aio")
             await asyncio.gather(
@@ -170,9 +171,10 @@ def test_e2e():
             )
 
             print("exiting .session()")
+
     asyncio.run(do_it())
     print("done with async")
-        
+
 
 if __name__ == "__main__":
     test_e2e()

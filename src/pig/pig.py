@@ -1,18 +1,20 @@
+import logging
 import os
 import time
 from typing import Any, Dict, Optional, Tuple, Union
-import logging
-from typing import TypeVar, Callable, Any, overload, Union, Awaitable
 
-import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
+from aiohttp import ClientSession, ClientTimeout
+from aiohttp.client import ClientResponse, ClientResponseError
+from aiohttp_retry import ExponentialRetry, RetryClient
 
-from aiohttp import ClientSession, ClientTimeout, TraceConfig, StreamReader
-from aiohttp.client import _RequestContextManager, ClientResponse, ClientError, ClientResponseError
-from aiohttp_retry import RetryClient, ExponentialRetry
-import asyncio
 from .sync_wrapper import _MakeSync
+
+try:
+    from importlib.metadata import version
+
+    __version__ = version("pig-python")
+except Exception:
+    __version__ = "unknown"
 
 BASE_URL = "https://api.pig.dev"
 if os.environ.get("PIG_BASE_URL"):
@@ -26,42 +28,46 @@ if os.environ.get("PIG_UI_BASE_URL"):
     if UI_BASE_URL.endswith("/"):
         UI_BASE_URL = UI_BASE_URL[:-1]
 
+
 class APIError(Exception):
     def __init__(self, status_code: int, message: str) -> None:
         self.status_code = status_code
         self.message = message
         super().__init__(f"HTTP {status_code}: {message}")
 
+
 class VMError(Exception):
     """Base exception for VM-related errors"""
+
     pass
 
 
 class APIClient:
     def __init__(self, base_url: str, api_key: str) -> None:
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.session = None
 
     def _session(self) -> RetryClient:
         retry_options = ExponentialRetry(
-            attempts=float('inf'),  # Infinite retries
+            attempts=float("inf"),  # Infinite retries
             start_timeout=0.1,
-            max_timeout=60,         # Max delay of 60 seconds between retries
-            factor=1.3,             # Exponential backoff factor
-            statuses={503}          # Only retry on 503 status
+            max_timeout=60,  # Max delay of 60 seconds between retries
+            factor=1.3,  # Exponential backoff factor
+            statuses={503},  # Only retry on 503 status
         )
-        
+
         session = ClientSession(
-            headers={"Authorization": f"Bearer {self.api_key}"},
-            timeout=ClientTimeout(total=90)  # 15 minute total timeout
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+                "X-Client-Language": "python",
+                "X-Client-Version": __version__,
+            },
+            timeout=ClientTimeout(total=90),  # 15 minute total timeout
         )
-        
-        retry_client = RetryClient(
-            client_session=session,
-            retry_options=retry_options
-        )
-        
+
+        retry_client = RetryClient(client_session=session, retry_options=retry_options)
+
         return retry_client
 
     async def _handle_response(self, response: ClientResponse, expect_json: bool = True) -> Union[Dict[str, Any], bytes]:
@@ -71,13 +77,13 @@ class APIClient:
             # If no content, return empty dict
             if not response.content or response.content_length == 0:
                 return {}
-        
+
             # if we're expecting json
             if expect_json:
-                if not response.content_type.startswith('application/json'):
+                if not response.content_type.startswith("application/json"):
                     raise APIError(response.status, f"Expected JSON response but got content-type: {response.content_type}")
                 return await response.json() if response.content else {}
-            
+
             # else it's a stream reader. Drain it
             body = await response.read()
             return body
@@ -86,8 +92,8 @@ class APIClient:
             error_msg = str(e)
             if response.content:
                 try:
-                    if response.content_type.startswith('application/json'):
-                        error_msg = (await response.json()).get('detail', str(e))
+                    if response.content_type.startswith("application/json"):
+                        error_msg = (await response.json()).get("detail", str(e))
                 except:  # noqa: E722
                     pass
             raise APIError(response.status, error_msg) from e
@@ -116,9 +122,11 @@ class APIClient:
             async with session.delete(f"{self.base_url}/{endpoint}") as response:
                 await self._handle_response(response)
 
+
 class Connection:
     """Represents an active connection to a VM"""
-    def __init__(self, vm: 'VM', connection_id: str) -> None:
+
+    def __init__(self, vm: "VM", connection_id: str) -> None:
         self.api = vm.api
         self.vm_id = vm.id
         self.id = connection_id
@@ -159,30 +167,39 @@ class Connection:
     @_MakeSync
     async def key(self, combo: str) -> None:
         """Send a XDO key combo to the VM. Examples: 'a', 'Return', 'alt+Tab', 'ctrl+c ctrl+v'"""
-        await self.api.post(f"vms/{self.vm_id}/key?connection_id={self.id}", data={
-            "string": combo,
-        })
+        await self.api.post(
+            f"vms/{self.vm_id}/key?connection_id={self.id}",
+            data={
+                "string": combo,
+            },
+        )
 
     @_MakeSync
     async def type(self, text: str) -> None:
         """Type text into the VM"""
-        await self.api.post(f"vms/{self.vm_id}/type?connection_id={self.id}", data={
-            "string": text,
-        })
+        await self.api.post(
+            f"vms/{self.vm_id}/type?connection_id={self.id}",
+            data={
+                "string": text,
+            },
+        )
 
     @_MakeSync
     async def cursor_position(self) -> Tuple[int, int]:
         """Get the current cursor position"""
         response = await self.api.get(f"vms/{self.vm_id}/cursor_position?connection_id={self.id}")
         return response["x"], response["y"]
-        
+
     @_MakeSync
     async def mouse_move(self, x: int, y: int) -> None:
         """Move mouse to specified coordinates"""
-        await self.api.post(f"vms/{self.vm_id}/mouse_move?connection_id={self.id}", data={
-            "x": x,
-            "y": y,
-        })
+        await self.api.post(
+            f"vms/{self.vm_id}/mouse_move?connection_id={self.id}",
+            data={
+                "x": x,
+                "y": y,
+            },
+        )
 
     @_MakeSync
     async def left_click(self, x: Optional[int] = None, y: Optional[int] = None) -> None:
@@ -219,12 +236,15 @@ class Connection:
         await self._mouse_click("right", False, x, y)
 
     async def _mouse_click(self, button: str, down: bool, x: Optional[int] = None, y: Optional[int] = None) -> None:
-        await self.api.post(f"vms/{self.vm_id}/mouse_click?connection_id={self.id}", data={
-            "button": button,
-            "down": down,
-            "x": x,
-            "y": y,
-        })
+        await self.api.post(
+            f"vms/{self.vm_id}/mouse_click?connection_id={self.id}",
+            data={
+                "button": button,
+                "down": down,
+                "x": x,
+                "y": y,
+            },
+        )
 
     @_MakeSync
     async def screenshot(self) -> bytes:
@@ -235,22 +255,30 @@ class Connection:
     @_MakeSync
     async def powershell(self, command: str, close_after: bool = False) -> None:
         """Execute a PowerShell command in the VM"""
-        await self.api.post(f"vms/{self.vm_id}/powershell?connection_id={self.id}", data={
-            "command": command,
-            "close_after": close_after,
-        })
+        await self.api.post(
+            f"vms/{self.vm_id}/powershell?connection_id={self.id}",
+            data={
+                "command": command,
+                "close_after": close_after,
+            },
+        )
 
     @_MakeSync
     async def cmd(self, command: str, close_after: bool = False) -> None:
         """Execute a CMD command in the VM"""
-        await self.api.post(f"vms/{self.vm_id}/cmd?connection_id={self.id}", data={
-            "command": command,
-            "close_after": close_after,
-        })
+        await self.api.post(
+            f"vms/{self.vm_id}/cmd?connection_id={self.id}",
+            data={
+                "command": command,
+                "close_after": close_after,
+            },
+        )
+
 
 class VMSession:
     """Context manager for VM sessions"""
-    def __init__(self, vm: 'VM') -> None:
+
+    def __init__(self, vm: "VM") -> None:
         self.vm = vm
         self.connection = None
 
@@ -276,26 +304,34 @@ class VMSession:
             else:
                 await self.vm.stop.aio()
 
+
 class Windows:
     """Windows image configuration"""
+
     def __init__(self, version: str = "2025") -> None:
         self.version = version
         self.installs = []
 
-    def install(self, application: str) -> 'Windows':
+    def install(self, application: str) -> "Windows":
         """Add an application to be installed"""
         self.installs.append(application)
         return self
 
     def _to_dict(self) -> dict:
-        return {
-            "version": self.version,
-            "installs": self.installs
-        }
+        return {"version": self.version, "installs": self.installs}
+
 
 class VM:
     """Main class for VM management"""
-    def __init__(self, id: Optional[str] = None, image: Optional[Union[Windows, str]] = None, temporary: bool = False, api_key: Optional[str] = None, log_level: str = "INFO") -> None:
+
+    def __init__(
+        self,
+        id: Optional[str] = None,
+        image: Optional[Union[Windows, str]] = None,
+        temporary: bool = False,
+        api_key: Optional[str] = None,
+        log_level: str = "INFO",
+    ) -> None:
         self.api_key = api_key or os.environ.get("PIG_SECRET_KEY")
         if not self.api_key:
             raise ValueError("API key must be provided either as argument or PIG_SECRET_KEY environment variable")
@@ -303,28 +339,28 @@ class VM:
         self.api = APIClient(BASE_URL, self.api_key)
         self._id = id
         self._temporary = temporary
-        self._image = image # could be a Windows object or string id
+        self._image = image  # could be a Windows object or string id
 
         self._logger = logging.getLogger(f"pig-{id}")
         self._logger.setLevel(log_level)
         handler = logging.StreamHandler()
-        handler.setFormatter(logging.Formatter('%(message)s'))
+        handler.setFormatter(logging.Formatter("%(message)s"))
         self._logger.handlers = [handler]
 
         if id and temporary:
             raise ValueError("Cannot use an existing VM as a temporary VM, since temporary VMs are destroyed after use.")
 
-    @_MakeSync 
+    @_MakeSync
     async def session(self) -> VMSession:
         """Create a new session for this VM.
-        
+
         Can be used as either a sync or async context manager:
-        
+
         Sync usage:
             with vm.session() as conn:
                 # use connection
                 conn.type("Hello, World!")
-        
+
         Async usage:
             async with vm.session.aio() as conn:
                 # use connection
@@ -340,9 +376,7 @@ class VM:
 
         if isinstance(self._image, str):
             # User provided an id
-            data = {
-                "image_id": self._image
-            }
+            data = {"image_id": self._image}
         else:
             # handle Windows image format
             # to deprecate
@@ -360,15 +394,15 @@ class VM:
         vm = await self.api.get(f"vms/{self._id}")
         if vm["status"] == "Terminated":
             raise VMError(f"VM {self._id} is terminated")
-        
+
         if vm["status"] != "Running":
             await self.start.aio()
-            
+
         response = await self.api.post(f"vms/{self._id}/connections")
         self._logger.info("Connected to VM, watch the desktop here:")
         self._logger.info(f"-> \033[95m{UI_BASE_URL}/app/vms/{self._id}?connectionId={response[0]['id']}\033[0m")
-        
-        return Connection(self, response[0]['id'])
+
+        return Connection(self, response[0]["id"])
 
     @_MakeSync
     async def start(self) -> None:
