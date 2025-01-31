@@ -102,6 +102,7 @@ def prompt_confirm(message):
         clear_menu_on_exit=False,
     )
     choice = menu.show()
+    click.echo()
     if choice is None:
         return False
     return choice == 1
