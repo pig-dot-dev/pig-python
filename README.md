@@ -129,6 +129,7 @@ VM-6F228MS-Q0EEQR0-02JT39X  Running   2025-01-15 23:45
 Available Commands:
 - `pig ls`: List all VMs
 - `pig create`: Create a new VM
+- `pig connect <vm_id>`: Starts a connection with a VM
 - `pig start <vm_id>`: Start a specific VM
 - `pig stop <vm_id>`: Stop a specific VM
 - `pig terminate <vm_id>`: Terminate and delete a VM
