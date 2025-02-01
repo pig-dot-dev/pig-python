@@ -31,7 +31,7 @@ async def get_images():
 async def snapshot_image(vm_id, tag):
     """Take a snapshot of a running VM"""
     client = APIClient(base_url=BASE_URL, api_key=API_KEY)
-    response = await client.post(f"vms/{vm_id}/image/snapshot", data={"tag": tag})
+    response = await client.post(f"images/snapshot", data={"tag": tag, "vm_id": vm_id})
     return response
 
 
@@ -63,14 +63,14 @@ def prompt_for_vm_id(exclude=None):
     display = []
     for vm in vms:
         dt = iso8601.parse_date(vm["created_at"])
-        status = click.style(vm["status"], fg="green") if vm["status"].lower() == "running" else vm["status"]
-        display.append(f"{vm['id']} ({status}) {dt.strftime('%Y-%m-%d %H:%M')}")
+        display.append(f"{vm['id']} - {vm["status"]} - {dt.strftime('%Y-%m-%d %H:%M')}".strip())
     menu = TerminalMenu(
         display,
         menu_cursor="🐽 " if emoji_supported() else "> ",
         menu_cursor_style=("fg_yellow", "bold"),
         menu_highlight_style=(),
         clear_menu_on_exit=False,
+        cycle_cursor=True,
     )
     choice = menu.show()
     if choice is None:
@@ -136,11 +136,11 @@ def print_images(images, all=False):
         # filter to owned images, which have a teamID
         images = [img for img in images if img["team_id"]]
 
-    headers = ["ID", "Tag", "Parent", "Created"]
+    headers = ["ID", "Tag", "Parent", "Status", "Created"]
     table_data = []
     for img in images:
         dt = iso8601.parse_date(img["created_at"])
-        table_data.append([img["id"], img["tag"], img["parent_id"] or "base", dt.strftime("%Y-%m-%d %H:%M")])
+        table_data.append([img["id"], img["tag"], img["parent_id"] or "base", img["status"], dt.strftime("%Y-%m-%d %H:%M")])
     click.echo(tabulate(table_data, headers=headers, tablefmt="simple"))
 
 
@@ -189,6 +189,8 @@ def start(ids, all, auto_approve):
     if not ids and not all:
         ids = [prompt_for_vm_id(exclude="Running")]
         if ids[0] is None:
+            return
+        if len(ids) == 0:
             return
 
     # Get all in flight at the same time
@@ -301,8 +303,8 @@ def snapshot(vm, tag, auto_approve):
             return
 
     click.echo(f"Snapshotting VM\t{vm}...")
-    response = asyncio.run(snapshot_image(vm, tag))
-    click.echo(f"Created Image\t{response['id']}")
+    asyncio.run(snapshot_image(vm, tag))
+    click.echo(f"Image snapshot started, check back at `pig img ls` for status.")
 
 
 # Add img to cli group
