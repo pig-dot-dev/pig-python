@@ -20,10 +20,7 @@ class Client:
     """Main client for interacting with the Pig API"""
 
     def __init__(self, api_key: Optional[str] = None, log_level: Optional[str] = None) -> None:
-        self.api_key = api_key or os.environ.get("PIG_SECRET_KEY")
-        if not self.api_key:
-            raise ValueError("API key must be provided either as argument or PIG_SECRET_KEY environment variable")
-        
+        self.api_key = api_key or os.environ.get("PIG_SECRET_KEY") # can be None for LocalMachine
         self._logger = self._setup_logger(log_level)
         self._api_client = APIClient(self.api_key)
         self._remote_base = base_url(MachineType.REMOTE)

@@ -97,6 +97,9 @@ class Machines:
     @_MakeSync
     async def create(self, image_id: Optional[str] = None) -> RemoteMachine:
         """Create a new remote machine"""
+        if self._client.api_key is None:
+            raise ValueError("API key not set. Set PIG_SECRET_KEY environment variable or pass to Client constructor.")
+            
         url = self._client._url(MachineType.REMOTE, "vms")
         data = {"image_id": image_id} if image_id else None
         response = await self._client._api_client.post(url, data=data)
@@ -106,12 +109,18 @@ class Machines:
     @_MakeSync
     async def delete(self, id: str) -> None:
         """Delete a remote machine"""
+        if self._client.api_key is None:
+            raise ValueError("API key not set. Set PIG_SECRET_KEY environment variable or pass to Client constructor.")
+
         url = self._client._url(MachineType.REMOTE, f"vms/{id}")
         await self._client._api_client.delete(url)
 
     @_MakeSync
     async def temporary(self) -> RemoteMachine:
         """Create a temporary remote machine that will be deleted after use"""
+        if self._client.api_key is None:
+            raise ValueError("API key not set. Set PIG_SECRET_KEY environment variable or pass to Client constructor.")
+
         machine = await self.create.aio()
         machine._set_ephemeral(True)
         return machine
@@ -119,6 +128,9 @@ class Machines:
     @_MakeSync
     async def get(self, id: str) -> RemoteMachine:
         """Get an existing remote machine by ID"""
+        if self._client.api_key is None:
+            raise ValueError("API key not set. Set PIG_SECRET_KEY environment variable or pass to Client constructor.")
+
         url = self._client._url(MachineType.REMOTE, f"vms/{id}")
         await self._client._api_client.get(url)  # Verify machine exists
         return RemoteMachine(self._client, id)
