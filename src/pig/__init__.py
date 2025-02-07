@@ -1,13 +1,19 @@
-from .pig import VM, APIError, Connection, VMError, VMSession, Windows
+from .api_client import APIClient, APIError
+from .machines import Machine, RemoteMachine, LocalMachine, MachineType
+from .connections import Connection, Connections
 from .sync_wrapper import AsyncContextError, _MakeSync
+from .pig import Client
 
 __all__ = [
-    "VM",
+    "APIClient",
     "APIError",
+    "Client",
     "Connection",
-    "VMError",
-    "VMSession",
-    "Windows",
-    "_MakeSync",
+    "Connections",
+    "Machine",
+    "RemoteMachine",
+    "LocalMachine",
+    "MachineType",
     "AsyncContextError",
+    "_MakeSync",
 ]

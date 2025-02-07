@@ -1,43 +1,42 @@
 import asyncio
 import time
 
-from pig import VM, APIError, Connection
+from pig import Client, APIError
 
+client = Client()
 
 def test_e2e():
     # This is an E2E test, will take a while
 
     # Case 1: manual lifecycle management
     print("\nCase 1: manual lifecycle management")
-    print("VM()")
-    vm = VM()  # new vm. This doesn't create anything in the db
-    assert vm.id is None
-    print(".create()")
-    vm.create()  # creates a new VM in the db, assigns id
+    print("Creating new machine")
+    vm = client.machines.create()  # new vm
     assert vm.id is not None
     print(f"VM ID {vm.id} created")
     print(".connect()")
-    conn: Connection = vm.connect()  # since already created, vm is started, so this just connects to it
-    print(f"VM ID {vm.id} connected")
+    with vm.connect() as conn:  # since already created, vm is started, so this just connects to it
+        print(f"VM ID {vm.id} connected")
 
-    # Test all connection methods
-    print("conn.type('Hello, World!')")
-    conn.type("Hello, World!")
-    print("conn.left_click(100, 100)")
-    conn.left_click(100, 100)
-    print("conn.cursor_position()")
-    x, y = conn.cursor_position()
-    assert x == 100 and y == 100
-    print(f"Cursor position: {x}, {y}")
-    print("conn.left_click_drag(200, 200)")
-    conn.left_click_drag(200, 200)
-    print("conn.double_click(300, 300)")
-    conn.double_click(300, 300)
-    print("conn.right_click(400, 400)")
-    conn.right_click(400, 400)
-    print("conn.screenshot()")
-    ss = conn.screenshot()  # calls screenshot under existing connection ID
-    assert len(ss) > 0
+        # Test all connection methods
+        print("conn.type('Hello, World!')")
+        conn.type("Hello, World!")
+        print("conn.left_click(100, 100)")
+        conn.left_click(100, 100)
+        print("conn.cursor_position()")
+        x, y = conn.cursor_position()
+        assert x == 100 and y == 100
+        print(f"Cursor position: {x}, {y}")
+        print("conn.left_click_drag(200, 200)")
+        conn.left_click_drag(200, 200)
+        print("conn.double_click(300, 300)")
+        conn.double_click(300, 300)
+        print("conn.right_click(400, 400)")
+        conn.right_click(400, 400)
+        print("conn.screenshot()")
+        ss = conn.screenshot()  # calls screenshot under existing connection ID
+        assert len(ss) > 0
+    
     print(".stop()")
     vm.stop()  # stops the vm
     assert vm.id is not None
@@ -51,16 +50,15 @@ def test_e2e():
     vm.start()  # starts the vm
     assert vm.id is not None
     print(f"VM ID {vm.id} started")
-    print(".connect()")
-    conn = vm.connect()
-    print(f"VM ID {vm.id} connected")
-    print("conn.screenshot()")
-    ss = conn.screenshot()
-    assert len(ss) > 0
+    with vm.connect() as conn:
+        print(f"VM ID {vm.id} connected")
+        print("conn.screenshot()")
+        ss = conn.screenshot()
+        assert len(ss) > 0
     print("Done")
 
-    # Case 3: trying to start a already running vm
-    print("\nCase 3: trying to start a already running vm")
+    # Case 3: trying to start an already running vm
+    print("\nCase 3: trying to start an already running vm")
     print(f"reusing VM ID {vm.id}")
     print(".start() - should be instant")
     s = time.time()
@@ -68,25 +66,23 @@ def test_e2e():
     assert vm.id is not None
     assert time.time() - s < 5  # should be nearly instant, but set to 5s just in case aws API is slow
     print(f"VM ID {vm.id} started")
-    print(".connect()")
-    conn = vm.connect()
-    print(f"VM ID {vm.id} connected")
-    print("conn.screenshot()")
-    ss = conn.screenshot()
-    assert len(ss) > 0
+    with vm.connect() as conn:
+        print(f"VM ID {vm.id} connected")
+        print("conn.screenshot()")
+        ss = conn.screenshot()
+        assert len(ss) > 0
     print("Done")
 
-    # Case 4: reinstantiating a new VM object with an existing vm
-    print("\nCase 4: reinstantiating a new VM object with an existing vm")
-    print(f"reusing VM ID {vm.id} on new VM object")
-    vm = VM(id=vm.id)
+    # Case 4: getting an existing vm by ID
+    print("\nCase 4: getting an existing vm by ID")
+    print(f"reusing VM ID {vm.id}")
+    vm = client.machines.get(vm.id)
     assert vm.id is not None
-    print(".connect()")
-    conn = vm.connect()
-    print(f"VM ID {vm.id} connected")
-    print("conn.screenshot()")
-    ss = conn.screenshot()
-    assert len(ss) > 0
+    with vm.connect() as conn:
+        print(f"VM ID {vm.id} connected")
+        print("conn.screenshot()")
+        ss = conn.screenshot()
+        assert len(ss) > 0
     print("Done")
 
     # Case 5: trying to start a terminated vm
@@ -103,17 +99,15 @@ def test_e2e():
     if not errored:
         raise Exception("VM should have been terminated")
 
-    # Case 6: using context manager (temporary)
-    print("\nCase 6: using context manager and temporary vm")
-    print("starting fresh VM")
-    vm = VM(temporary=True)  # temporary vm, will be destroyed after use
-    assert vm.id is None
-    print("entering .session()")
-    with vm.session() as conn:
+    # Case 6: using temporary vm
+    print("\nCase 6: using temporary vm")
+    print("starting fresh temporary VM")
+    with client.machines.temporary() as vm:
         assert vm.id is not None
-        print(f"VM ID {vm.id} connected")
-
-        print("exiting .session()")
+        with vm.connect() as conn:
+            print(f"VM ID {vm.id} connected")
+            print("doing some work...")
+    print("session closed, vm should be terminated")
     # double check that the vm is terminated
     errored = False
     try:
@@ -124,53 +118,28 @@ def test_e2e():
     if not errored:
         raise Exception("VM should have been terminated")
 
-    # Case 7: using context manager (persistent)
-    print("\nCase 7: using context manager and persistent vm")
-    vm = VM()  # reuse existing vm
-    assert vm.id is None
-    print("entering .session()")
-    with vm.session() as conn:
-        assert vm.id is not None
-        print(f"VM ID {vm.id} connected")
-
-        print("exiting .session()")
-    # double check that the vm is stopped
-    print(f"VM ID {vm.id} stopped")
-    print(".start()")
-    vm.start()
-    print("VM ID {vm.id} restarted")
-    vm.terminate()
-    print(f"VM ID {vm.id} terminated")
-
     # Case 8: using async versions of the client
     print("\nCase 8: using async versions of the client")
 
     async def do_it():
-        vm = VM(temporary=True)
-        print("await vm.connect.aio()")
-        conn: Connection = await vm.connect.aio()
-        assert vm.id is not None
-        print(f"VM ID {vm.id} connected in async connection (implicit)")
-        print("await asyncio.gather of click.aio, type.aio, mouse_move.aio")
-        await asyncio.gather(
-            conn.left_click.aio(x=330, y=750),
-            conn.type.aio("excel"),
-            conn.mouse_move.aio(x=500, y=750),
-        )
+        async with client.machines.temporary.aio() as vm:
+            print("connecting to vm")
+            async with vm.connect.aio() as conn:
+                assert vm.id is not None
+                print(f"VM ID {vm.id} connected")
+                print("await asyncio.gather of click.aio, type.aio, mouse_move.aio")
+                await asyncio.gather(
+                    conn.left_click.aio(x=330, y=750),
+                    conn.type.aio("excel"),
+                    conn.mouse_move.aio(x=500, y=750),
+                )
 
-        # Starting session
-        print("entering async .session.aio()")
-        async with vm.session.aio() as conn:
-            assert vm.id is not None
-            print(f"VM ID {vm.id} connected in async context manager")
-            print("await asyncio.gather of click.aio, type.aio, mouse_move.aio")
-            await asyncio.gather(
-                conn.left_click.aio(x=330, y=750),
-                conn.type.aio("excel"),
-                conn.mouse_move.aio(x=500, y=750),
-            )
-
-            print("exiting .session()")
+                print("doing more async operations...")
+                await asyncio.gather(
+                    conn.left_click.aio(x=330, y=750),
+                    conn.type.aio("excel"),
+                    conn.mouse_move.aio(x=500, y=750),
+                )
 
     asyncio.run(do_it())
     print("done with async")

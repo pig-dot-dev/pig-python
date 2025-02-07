@@ -7,37 +7,31 @@ import iso8601
 from simple_term_menu import TerminalMenu
 from tabulate import tabulate
 
-from .pig import BASE_URL, VM, APIClient
+from .pig import Client, MachineType
 
-API_KEY = os.environ.get("PIG_SECRET_KEY")
-if not API_KEY:
-    raise ValueError("PIG_SECRET_KEY environment variable not set")
+# Global client
+client = Client()
 
 # Additional CRUD calls supported in CLI but not via SDK
-
-
 async def get_vms():
     """Fetch VMs from the API"""
-    client = APIClient(base_url=BASE_URL, api_key=API_KEY)
-    return await client.get("vms")
+    url = client._url(MachineType.REMOTE, "vms")
+    return await client._api_client.get(url)
 
 
 async def get_images():
     """Fetch images from the API"""
-    client = APIClient(base_url=BASE_URL, api_key=API_KEY)
-    return await client.get("images")
+    url = client._url(MachineType.REMOTE, "images")
+    return await client._api_client.get(url)
 
 
 async def snapshot_image(vm_id, tag):
     """Take a snapshot of a running VM"""
-    client = APIClient(base_url=BASE_URL, api_key=API_KEY)
-    response = await client.post(f"images/snapshot", data={"tag": tag, "vm_id": vm_id})
-    return response
+    url = client._url(MachineType.REMOTE, "images/snapshot")
+    return await client._api_client.post(url, data={"tag": tag, "vm_id": vm_id})
 
 
 # CLI utils
-
-
 def emoji_supported():
     """Check if terminal likely supports emoji"""
     term = os.environ.get("TERM", "")
@@ -157,9 +151,8 @@ def cli():
 @click.option("--image", "-i", required=False, help="Image ID to use")
 def create(image):
     """Create a new VM"""
-    vm = VM(image=image)
     click.echo("Creating VM...")
-    vm.create()
+    vm = client.machines.create(image)
     click.echo(f"Created VM\t{vm.id}")
 
 
@@ -172,9 +165,9 @@ def connect(id):
         if not id:
             return
 
-    vm = VM(id=id)
-    _conn = vm.connect()  # Prints url
-
+    vm = client.machines.get(id)
+    with vm.connect() as _:
+        pass
 
 @cli.command()
 @click.argument("ids", nargs=-1, required=False)
@@ -196,7 +189,7 @@ def start(ids, all, auto_approve):
     # Get all in flight at the same time
     async def start_vm(id):
         try:
-            vm = VM(id=id)
+            vm = await client.machines.get.aio(id)
             click.echo(f"Starting {id}...")
             await vm.start.aio()
             click.echo("Started")
@@ -226,7 +219,7 @@ def stop(ids, all, auto_approve):
 
     async def stop_vm(id):
         try:
-            vm = VM(id=id)
+            vm = await client.machines.get.aio(id)
             click.echo(f"Stopping {id}...")
             await vm.stop.aio()
             click.echo("Stopped")
@@ -257,7 +250,7 @@ def terminate(ids, all, auto_approve):
     # Get all in flight at the same time
     async def terminate_vm(id):
         try:
-            vm = VM(id=id)
+            vm = await client.machines.get.aio(id)
             click.echo(f"Terminating {id}...")
             await vm.terminate.aio()
             click.echo("Terminated")

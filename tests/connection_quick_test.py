@@ -1,6 +1,7 @@
 import argparse
 
-from pig import VM
+from pig import Client
+client = Client()
 
 
 def main():
@@ -8,14 +9,9 @@ def main():
     parser.add_argument("--vmid", required=True)
     args = parser.parse_args()
 
-    vm = VM(id=args.vmid)
-    conn = vm.connect()
-
-    # Open search using key shortcut
-    conn.key("h e l l o")
-    # conn.cmd("dir")
-    # conn.powershell("ls", close_after=True)
-
+    vm = client.machines.get(args.vmid)
+    with vm.connect() as conn:
+        conn.key("h e l l o")
 
 if __name__ == "__main__":
     main()
