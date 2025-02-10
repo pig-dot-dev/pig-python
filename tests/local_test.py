@@ -7,10 +7,10 @@ client = Client()
 def test_local():
     machine = client.machines.local()
     with machine.connect() as conn:
-        conn.left_click(x=100, y=200)
+        conn.key("super+r")
         conn.type("hello")
+        conn.mouse_move(x=100, y=400)
         conn.left_click(x=100, y=400)
-        conn.type("world")
 
 if __name__ == "__main__":
     test_local()
