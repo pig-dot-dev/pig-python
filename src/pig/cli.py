@@ -7,28 +7,28 @@ import iso8601
 from simple_term_menu import TerminalMenu
 from tabulate import tabulate
 
-from .pig import Client, MachineType
+from .pig import Client
 
 # Global client
 client = Client()
 
 # Additional CRUD calls supported in CLI but not via SDK
-async def get_vms():
-    """Fetch VMs from the API"""
-    url = client._url(MachineType.REMOTE, "vms")
+async def get_machines():
+    """Fetch Machines from the API"""
+    url = client._api_url("machines")
     return await client._api_client.get(url)
 
 
 async def get_images():
     """Fetch images from the API"""
-    url = client._url(MachineType.REMOTE, "images")
+    url = client._api_url("images")
     return await client._api_client.get(url)
 
 
-async def snapshot_image(vm_id, tag):
-    """Take a snapshot of a running VM"""
-    url = client._url(MachineType.REMOTE, "images/snapshot")
-    return await client._api_client.post(url, data={"tag": tag, "vm_id": vm_id})
+async def snapshot_image(machine_id, tag):
+    """Take a snapshot of a running Machine"""
+    url = client._api_url("images/snapshot")
+    return await client._api_client.post(url, data={"tag": tag, "machine_id": machine_id})
 
 
 # CLI utils
@@ -40,24 +40,24 @@ def emoji_supported():
     return any(t in term for t in emoji_terms)
 
 
-def prompt_for_vm_id(exclude=None):
-    """ "For when user doesn't specify a vm ID"""
-    vms = asyncio.run(get_vms())
-    if len(vms) == 0:
-        click.echo("There are no VMs in your account. Create one with `pig create`")
+def prompt_for_machine_id(exclude=None):
+    """ "For when user doesn't specify a machine ID"""
+    machines = asyncio.run(get_machines())
+    if len(machines) == 0:
+        click.echo("There are no Machines in your account. Create one with `pig create`")
         return
-    vms = [vm for vm in vms if vm["status"].lower() != "terminated"]
+    machines = [machine for machine in machines if machine["state"].lower() != "terminated"]
     if exclude:
-        vms = [vm for vm in vms if vm["status"].lower() != exclude.lower()]
-    if len(vms) == 0 and exclude:
-        click.echo(f"All VMs in your account are already {exclude}")
+        machines = [machine for machine in machines if machine["state"].lower() != exclude.lower()]
+    if len(machines) == 0 and exclude:
+        click.echo(f"All Machines in your account are already {exclude}")
         return
-    if len(vms) == 1:
-        return vms[0]["id"]
+    if len(machines) == 1:
+        return machines[0]["id"]
     display = []
-    for vm in vms:
-        dt = iso8601.parse_date(vm["created_at"])
-        display.append(f"{vm['id']} - {vm["status"]} - {dt.strftime('%Y-%m-%d %H:%M')}".strip())
+    for machine in machines:
+        dt = iso8601.parse_date(machine["created_at"])
+        display.append(f"{machine['id']} - {machine['state']} - {dt.strftime('%Y-%m-%d %H:%M')}".strip())
     menu = TerminalMenu(
         display,
         menu_cursor="🐽 " if emoji_supported() else "> ",
@@ -69,22 +69,22 @@ def prompt_for_vm_id(exclude=None):
     choice = menu.show()
     if choice is None:
         return
-    return vms[choice]["id"]
+    return machines[choice]["id"]
 
 
 def prompt_for_all(action, auto_approve, exclude=None):
     """ "For when user passes in the -a flag"""
-    vms = asyncio.run(get_vms())
-    target_vms = [vm for vm in vms if vm["status"].lower() != "terminated"]
+    machines = asyncio.run(get_machines())
+    target_machines = [machine for machine in machines if machine["state"].lower() != "terminated"]
     if exclude:
-        target_vms = [vm for vm in target_vms if vm["status"].lower() != exclude.lower()]
-    if len(target_vms) == 0:
-        click.echo(f"All VMs in your account are already {exclude}")
+        target_machines = [machine for machine in target_machines if machine["state"].lower() != exclude.lower()]
+    if len(target_machines) == 0:
+        click.echo(f"All Machines in your account are already {exclude}")
         return []
     if not auto_approve:
-        if not prompt_confirm(f"You're about to {action} {len(target_vms)} VM{'' if len(target_vms) == 1 else 's'}."):
+        if not prompt_confirm(f"You're about to {action} {len(target_machines)} Machine{'' if len(target_machines) == 1 else 's'}."):
             return []
-    return [vm["id"] for vm in target_vms]
+    return [machine["id"] for machine in target_machines]
 
 
 def prompt_confirm(message):
@@ -103,20 +103,20 @@ def prompt_confirm(message):
     return choice == 1
 
 
-def print_vms(vms, show_terminated=False):
-    """Display VMs in a formatted way"""
-    if not vms:
-        click.echo("No VMs found")
+def print_machines(machines, show_terminated=False):
+    """Display Machines in a formatted way"""
+    if not machines:
+        click.echo("No Machines found")
         return
 
-    vms = vms if show_terminated else [vm for vm in vms if vm["status"].lower() != "terminated"]
+    machines = machines if show_terminated else [machine for machine in machines if machine["state"].lower() != "terminated"]
 
-    headers = ["ID", "Status", "Created"]
+    headers = ["ID", "state", "Created"]
     table_data = []
-    for vm in vms:
-        dt = iso8601.parse_date(vm["created_at"])
-        status = click.style(vm["status"], fg="green") if vm["status"].lower() == "running" else vm["status"]
-        table_data.append([vm["id"], status, dt.strftime("%Y-%m-%d %H:%M")])
+    for machine in machines:
+        dt = iso8601.parse_date(machine["created_at"])
+        state = click.style(machine["state"], fg="green") if machine["state"].lower() == "running" else machine["state"]
+        table_data.append([machine["id"], state, dt.strftime("%Y-%m-%d %H:%M")])
     click.echo(tabulate(table_data, headers=headers, tablefmt="simple"))
 
 
@@ -130,11 +130,11 @@ def print_images(images, all=False):
         # filter to owned images, which have a teamID
         images = [img for img in images if img["team_id"]]
 
-    headers = ["ID", "Tag", "Parent", "Status", "Created"]
+    headers = ["ID", "Tag", "Parent", "state", "Created"]
     table_data = []
     for img in images:
         dt = iso8601.parse_date(img["created_at"])
-        table_data.append([img["id"], img["tag"], img["parent_id"] or "base", img["status"], dt.strftime("%Y-%m-%d %H:%M")])
+        table_data.append([img["id"], img["tag"], img["parent_id"] or "base", img["state"], dt.strftime("%Y-%m-%d %H:%M")])
     click.echo(tabulate(table_data, headers=headers, tablefmt="simple"))
 
 
@@ -143,137 +143,137 @@ def print_images(images, all=False):
 
 @click.group()
 def cli():
-    """pig CLI for managing Windows VMs"""
+    """pig CLI for managing Windows Machines"""
     pass
 
 
 @cli.command()
 @click.option("--image", "-i", required=False, help="Image ID to use")
 def create(image):
-    """Create a new VM"""
-    click.echo("Creating VM...")
-    vm = client.machines.create(image)
-    click.echo(f"Created VM\t{vm.id}")
+    """Create a new Machine"""
+    click.echo("Creating Machine...")
+    machine = client.machines.create(image)
+    click.echo(f"Created Machine\t{machine.id}")
 
 
 @cli.command()
 @click.argument("id", required=False)
 def connect(id):
-    """Starts a connection with a VM"""
+    """Starts a connection with a Machine"""
     if not id:
-        id = prompt_for_vm_id()
+        id = prompt_for_machine_id()
         if not id:
             return
 
-    vm = client.machines.get(id)
-    with vm.connect() as _:
+    machine = client.machines.get(id)
+    with machine.connect() as _:
         pass
 
 @cli.command()
 @click.argument("ids", nargs=-1, required=False)
-@click.option("--all", "-a", is_flag=True, help="Start all VMs")
+@click.option("--all", "-a", is_flag=True, help="Start all Machines")
 @click.option("-y", "auto_approve", is_flag=True, help="Skip confirmation prompt")
 def start(ids, all, auto_approve):
-    """Start an existing VM"""
+    """Start an existing Machine"""
     if all:
         ids = prompt_for_all("start", auto_approve, exclude="Running")
         if len(ids) == 0:
             return
     if not ids and not all:
-        ids = [prompt_for_vm_id(exclude="Running")]
+        ids = [prompt_for_machine_id(exclude="Running")]
         if ids[0] is None:
             return
         if len(ids) == 0:
             return
 
     # Get all in flight at the same time
-    async def start_vm(id):
+    async def start_machine(id):
         try:
-            vm = await client.machines.get.aio(id)
+            machine = await client.machines.get.aio(id)
             click.echo(f"Starting {id}...")
-            await vm.start.aio()
+            await machine.start.aio()
             click.echo("Started")
         except Exception as e:
-            click.echo(f"Failed to start VM {id}: {str(e)}", err=True)
+            click.echo(f"Failed to start Machine {id}: {str(e)}", err=True)
 
     async def run_starts():
-        await asyncio.gather(*[start_vm(id) for id in ids])
+        await asyncio.gather(*[start_machine(id) for id in ids])
 
     asyncio.run(run_starts())
 
 
 @cli.command()
 @click.argument("ids", nargs=-1, required=False)
-@click.option("--all", "-a", is_flag=True, help="Stop all VMs")
+@click.option("--all", "-a", is_flag=True, help="Stop all Machines")
 @click.option("-y", "auto_approve", is_flag=True, help="Skip confirmation prompt")
 def stop(ids, all, auto_approve):
-    """Stop an existing VM"""
+    """Stop an existing Machine"""
     if all:
         ids = prompt_for_all("stop", auto_approve, exclude="Stopped")
         if len(ids) == 0:
             return
     if not ids and not all:
-        ids = [prompt_for_vm_id(exclude="Stopped")]
+        ids = [prompt_for_machine_id(exclude="Stopped")]
         if ids[0] is None:
             return
 
-    async def stop_vm(id):
+    async def stop_machine(id):
         try:
-            vm = await client.machines.get.aio(id)
+            machine = await client.machines.get.aio(id)
             click.echo(f"Stopping {id}...")
-            await vm.stop.aio()
+            await machine.stop.aio()
             click.echo("Stopped")
         except Exception as e:
-            click.echo(f"Failed to stop VM {id}: {str(e)}", err=True)
+            click.echo(f"Failed to stop Machine {id}: {str(e)}", err=True)
 
     async def run_stops():
-        await asyncio.gather(*[stop_vm(id) for id in ids])
+        await asyncio.gather(*[stop_machine(id) for id in ids])
 
     asyncio.run(run_stops())
 
 
 @cli.command()
 @click.argument("ids", nargs=-1, required=False)
-@click.option("--all", "-a", is_flag=True, help="Terminate all VMs")
+@click.option("--all", "-a", is_flag=True, help="Terminate all Machines")
 @click.option("-y", "auto_approve", is_flag=True, help="Skip confirmation prompt")
 def terminate(ids, all, auto_approve):
-    """Terminate an existing VM"""
+    """Terminate an existing Machine"""
     if all:
         ids = prompt_for_all("terminate", auto_approve)
         if len(ids) == 0:
             return
     if not ids and not all:
-        ids = [prompt_for_vm_id()]
+        ids = [prompt_for_machine_id()]
         if ids[0] is None:
             return
 
     # Get all in flight at the same time
-    async def terminate_vm(id):
+    async def terminate_machine(id):
         try:
-            vm = await client.machines.get.aio(id)
+            machine = await client.machines.get.aio(id)
             click.echo(f"Terminating {id}...")
-            await vm.terminate.aio()
+            await machine.terminate.aio()
             click.echo("Terminated")
         except Exception as e:
-            click.echo(f"Failed to terminate VM {id}: {str(e)}", err=True)
+            click.echo(f"Failed to terminate Machine {id}: {str(e)}", err=True)
 
     async def run_terminates():
-        await asyncio.gather(*[terminate_vm(id) for id in ids])
+        await asyncio.gather(*[terminate_machine(id) for id in ids])
 
     asyncio.run(run_terminates())
 
 
 @cli.command()
-@click.option("--all", "-a", is_flag=True, help="Show all VMs, including terminated ones")
+@click.option("--all", "-a", is_flag=True, help="Show all Machines, including terminated ones")
 def ls(all):
-    """List all VMs"""
-    vms = asyncio.run(get_vms())
-    print_vms(vms, show_terminated=all)
+    """List all Machines"""
+    machines = asyncio.run(get_machines())
+    print_machines(machines, show_terminated=all)
 
 
 @cli.group()
 def img():
-    """Commands for managing VM images"""
+    """Commands for managing Machine images"""
     pass
 
 
@@ -286,18 +286,18 @@ def ls(all):  # noqa: F811
 
 
 @img.command()
-@click.option("--vm", required=True, help="VM ID to snapshot")
+@click.option("--machine", "m", required=True, help="Machine ID to snapshot")
 @click.option("--tag", "-t", required=True, help='Tag (name) for the snapshot. Example: --tag my_snapshot or --tag "My Snapshot"')
 @click.option("-y", "auto_approve", is_flag=True, help="Skip confirmation prompt")
-def snapshot(vm, tag, auto_approve):
-    """Take a snapshot of a running VM"""
+def snapshot(machine, tag, auto_approve):
+    """Take a snapshot of a running Machine"""
     if not auto_approve:
-        if not prompt_confirm("This will take up to 15 minutes to complete, and will permanently terminate the parent VM."):
+        if not prompt_confirm("This will take up to 15 minutes to complete, and will permanently terminate the parent Machine."):
             return
 
-    click.echo(f"Snapshotting VM\t{vm}...")
-    asyncio.run(snapshot_image(vm, tag))
-    click.echo(f"Image snapshot started, check back at `pig img ls` for status.")
+    click.echo(f"Snapshotting Machine\t{machine}...")
+    asyncio.run(snapshot_image(machine, tag))
+    click.echo(f"Image snapshot started, check back at `pig img ls` for state.")
 
 
 # Add img to cli group

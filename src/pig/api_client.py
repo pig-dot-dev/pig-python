@@ -78,26 +78,26 @@ class APIClient:
         except Exception as e:
             raise APIError(response.status, str(e)) from e
 
-    async def get(self, url: str, expect_json: bool = True) -> Union[Dict[str, Any], ClientResponse]:
+    async def get(self, url: str, headers: Optional[Dict[str, Any]] = None, expect_json: bool = True) -> Union[Dict[str, Any], ClientResponse]:
         print("GET", url)
         async with self._session() as session:
-            async with session.get(url) as response:
+            async with session.get(url, headers=headers) as response:
                 return await self._handle_response(response, expect_json)
 
-    async def post(self, url: str, data: Optional[Dict[str, Any]] = None, expect_json: bool = True) -> Union[Dict[str, Any], ClientResponse]:
+    async def post(self, url: str, data: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, Any]] = None, expect_json: bool = True) -> Union[Dict[str, Any], ClientResponse]:
         print("POST", url)
         async with self._session() as session:
-            async with session.post(url, json=data) as response:
+            async with session.post(url, json=data, headers=headers) as response:
                 return await self._handle_response(response, expect_json)
 
-    async def put(self, url: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def put(self, url: str, data: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, Any]] = None, expect_json: bool = True) -> Union[Dict[str, Any], ClientResponse]:
         print("PUT", url)
         async with self._session() as session:
-            async with session.put(url, json=data) as response:
-                return await self._handle_response(response)
+            async with session.put(url, json=data, headers=headers) as response:
+                return await self._handle_response(response, expect_json)
 
-    async def delete(self, url: str) -> None:
+    async def delete(self, url: str, headers: Optional[Dict[str, Any]] = None, expect_json: bool = True) -> Union[Dict[str, Any], ClientResponse]:
         print("DELETE", url)
         async with self._session() as session:
-            async with session.delete(url) as response:
-                await self._handle_response(response)
+            async with session.delete(url, headers=headers) as response:
+                return await self._handle_response(response, expect_json)

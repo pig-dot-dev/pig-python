@@ -61,7 +61,7 @@ class RemoteMachine(Machine):
         """Start the machine"""
         if not self.id:
             raise APIError(400, "Machine not created")
-        url = self._client._url(MachineType.REMOTE, f"vms/{self.id}/state/start")
+        url = self._client._api_url(f"machines/{self.id}/state/start")
         await self._client._api_client.put(url)
 
     @_MakeSync
@@ -69,7 +69,7 @@ class RemoteMachine(Machine):
         """Stop the machine"""
         if not self.id:
             raise APIError(400, "Machine not created")
-        url = self._client._url(MachineType.REMOTE, f"vms/{self.id}/state/stop")
+        url = self._client._api_url(f"machines/{self.id}/state/stop")
         await self._client._api_client.put(url)
 
     @_MakeSync
@@ -77,7 +77,7 @@ class RemoteMachine(Machine):
         """Terminate and delete the machine"""
         if not self.id:
             raise APIError(400, "Machine not created")
-        url = self._client._url(MachineType.REMOTE, f"vms/{self.id}")
+        url = self._client._url(MachineType.REMOTE, f"machines/{self.id}")
         await self._client._api_client.delete(url)
 
 class LocalMachine(Machine):
@@ -100,7 +100,7 @@ class Machines:
         if self._client.api_key is None:
             raise ValueError("API key not set. Set PIG_SECRET_KEY environment variable or pass to Client constructor.")
             
-        url = self._client._url(MachineType.REMOTE, "vms")
+        url = self._client._api_url("machines")
         data = {"image_id": image_id} if image_id else None
         response = await self._client._api_client.post(url, data=data)
         machine_id = response[0]["id"]
@@ -112,7 +112,7 @@ class Machines:
         if self._client.api_key is None:
             raise ValueError("API key not set. Set PIG_SECRET_KEY environment variable or pass to Client constructor.")
 
-        url = self._client._url(MachineType.REMOTE, f"vms/{id}")
+        url = self._client._api_url(f"machines/{id}")
         await self._client._api_client.delete(url)
 
     @_MakeSync
@@ -131,7 +131,7 @@ class Machines:
         if self._client.api_key is None:
             raise ValueError("API key not set. Set PIG_SECRET_KEY environment variable or pass to Client constructor.")
 
-        url = self._client._url(MachineType.REMOTE, f"vms/{id}")
+        url = self._client._api_url(f"machines/{id}")
         await self._client._api_client.get(url)  # Verify machine exists
         return RemoteMachine(self._client, id)
     
