@@ -1,5 +1,3 @@
-<img width="1300" alt="Colored Pig (1)" src="https://github.com/user-attachments/assets/609466bf-f338-47e1-be4e-a97e6ce42e5c" />
-
 # Pig Docs
 
 Pig is an API to launch and automate Windows apps. Plug this SDK into your AI Agent apps to give them a computer!
@@ -8,252 +6,128 @@ Pig is an API to launch and automate Windows apps. Plug this SDK into your AI Ag
 
 > **Warning**: This API and associated infrastructure are currently in alpha and will likely undergo changes.
 
-## Table of Contents
 
-- [Pig Docs](#pig-docs)
-  - [Table of Contents](#table-of-contents)
-  - [Installation](#installation)
-  - [Quick Start Guide](#quick-start-guide)
-    - [Authentication](#authentication)
-    - [Basic Usage](#basic-usage)
-    - [Resuming an Existing Session](#resuming-an-existing-session)
-    - [Resource Management](#resource-management)
-  - [Command Line Interface](#command-line-interface)
-  - [API Reference](#api-reference)
-    - [VM Class](#vm-class)
-      - [Constructor](#constructor)
-      - [Methods](#methods)
-    - [Connection Class](#connection-class)
-      - [Mouse Operations](#mouse-operations)
-      - [Keyboard Operations](#keyboard-operations)
-      - [Screen Operations](#screen-operations)
-      - [Scripting](#scripting)
-      - [Control Management](#control-management)
-  - [Advanced Usage](#advanced-usage)
-    - [Async](#async)
-    - [Custom Image Configuration](#custom-image-configuration)
-    - [Temporary VM Sessions](#temporary-vm-sessions)
-  - [Configuration](#configuration)
+## Getting Started
 
-## Installation
-
-Install the package using pip:
+### Step 1: Install the Python SDK
 
 ```bash
 pip install pig-python
 ```
 
-This installation includes both the Python SDK and the `pig` command-line interface.
+### Step 2: Start Piglet
 
-## Quick Start Guide
+The Piglet is a process that runs on your Windows machine to drive the automations. 
 
-### Authentication
-
-Set up your API key before using the SDK:
+Follow [this guide](https://github.com/pig-dot-dev/piglet/) to download it, and start it with the command:
 
 ```bash
-export PIG_SECRET_KEY=your_api_key
+# Start the Piglet server (exposes localhost:3000)
+piglet
 ```
 
-[Apply Here](https://pig.dev/alpha) to get your API key.
-
-### Basic Usage
-
-Here's a simple example to launch and interact with a VM:
+### Step 3: Run Local Automation
 
 ```python
-from pig import VM
+from pig import Client
+client = Client()
 
-# Create and connect to a new VM
-vm = VM()
-print("Starting VM...")
-conn = vm.connect()  # Initial boot takes a few minutes
+# Select your local machine
+machine = client.machines.local()
 
-# Interact with the VM
-conn.mouse_move(100, 100)  
-conn.left_click(100, 100)  
-conn.type("Hello, World!")
+# Start a connection and send a workflow
+with machine.connect() as conn:
+    conn.key("super")                     # Press Windows key
+    conn.type("hello world!")             # Type text
 ```
 
-### Resuming an Existing Session
+### Step 4: Remote Control via Pig
 
-To reconnect to an existing VM:
+Your Piglet can be controlled over the internet by subscribing it as a machine in Pig's API.
 
-```python
-vm = VM(id="VM-ABCDEFG-ABCDEFG-ABCDEFG")
-conn = vm.connect()
-conn.type("Hello Again!")
-```
-
-> Hint: if you don't know the VM ID, you can use the `pig ls` CLI command to list all VMs.
-
-### Resource Management
-
-Always clean up your VMs when finished:
-
-```python
-# Option 1: Stop VM (persists to disk)
-vm.stop()
-
-# Option 2: Terminate VM (deletes the disk)
-vm.terminate()
-```
-
-For automated scripts, use the context manager pattern:
-
-```python
-with VM().session() as conn:
-    conn.mouse_move(100, 100)
-    conn.left_click(100, 100)
-    # VM automatically stops when the block exits
-```
-The context manager ensures your VMs stop.
-
-> **Warning**: During the alpha period, VMs left running without activity may be manually stopped by the Pig team. But please be a good citizen and clean up after yourself.
-
-## Command Line Interface
-
-The `pig` CLI provides convenient VM management commands:
 
 ```bash
-# List all VMs
+# Start Piglet pointing to Pig's control server
+piglet --control-host piglet.pig.dev --pig-secret-key SK-YOUR_API_KEY
+```
+
+> [Get your API key here](https://pig.dev/alpha)
+
+This will register your Piglet as a machine in Pig's API.
+
+Now, from any computer, you can send automations to your connected Piglet.
+
+Use the pig CLI to see your connected machines:
+```bash
+# List available machines
 pig ls
-
-# Output format:
-ID                          Status    Created
---------------------------  --------  ----------------
-VM-6F25BH9-VHENR80-05CRX4Z  Running   2025-01-16 06:47
-VM-6F228MS-Q0EEQR0-02JT39X  Running   2025-01-15 23:45
+```
+```
+ID                         state    Created
+-------------------------  -------  ----------------
+M-6HNGAXR-NT0B3VA-P33Q0R2  RUNNING  2025-02-10 23:31
 ```
 
-Available Commands:
-- `pig ls`: List all VMs
-- `pig create`: Create a new VM
-- `pig connect <vm_id>`: Starts a connection with a VM
-- `pig start <vm_id>`: Start a specific VM
-- `pig stop <vm_id>`: Stop a specific VM
-- `pig terminate <vm_id>`: Terminate and delete a VM
-- `pig img ls`: List available VM images
-- `pig img snapshot --vm <vm_id> --tag <tag>`: Snapshot an existing VM into a new image. Destroys the parent VM.
+And send an automation to it by specifying the machine ID.
+```python
+from pig import Client
+client = Client()
+
+# Select your remote machine
+machine = client.machines.get("M-6HNGAXR-NT0B3VA-P33Q0R2")
+
+# Start a connection and send a workflow
+with machine.connect() as conn:
+    conn.key("super")                     # Press Windows key
+    conn.type("hello world!")             # Type text
+```
 
 ## API Reference
 
-### VM Class
-The VM class is your interface for managing VMs, the cloud machines that run the Windows OS.
-
-#### Constructor
+### Machine Management
 
 ```python
-VM(
-    id: Optional[str] = None,           # Optionally attach to existing VM.
-                                        # If none, new VM will be created.
+# Get your local machine
+machine = client.machines.local()
 
-    image: Optional[Union[Windows, str]] = None, # OS image configuration
-    temporary: bool = False,            # If True, terminates VM after session
-    api_key: Optional[str] = None,      # API key (alternative to env var)
-    log_level: str = "INFO",            # Log level for any informational messages
-)
+# Get a remote machine by ID
+machine = client.machines.get("M-ABCD123")
 ```
 
-#### Methods
+### Connection APIs
 
-- `create() -> str`: Creates a new VM and returns its ID
-- `connect() -> Connection`: Connects to the VM, creating if necessary
-- `session() -> VMSession`: Creates a managed VM session
-- `start()`: Starts the VM
-- `stop()`: Stops the VM
-- `terminate()`: Terminates and deletes the VM
-
-> **Tip:** During development and exploration, prefer using the imperative API (`vm.start(), vm.stop()`) so you can watch the VM and experiment. Use the context manager (`vm.session()`) once you're ready to automate tasks.
-
-### Connection Class
-
-The connection class is your interface for interracting with a running VM. This is what you'll expose as Tools to your agent.
-
-A Connection has the following methods:
-
-#### Mouse Operations
-- `cursor_position() -> Tuple[int, int]`: Get current cursor position
-- `mouse_move(x: int, y: int)`: Move cursor to coordinates
-- `left_click(x: Optional[int], y: Optional[int])`: Left click at current location, or at specified coordinates
-- `left_click_drag(x: int, y: int)`: Click and drag from current location to target coordinates
-- `double_click(x: Optional[int], y: Optional[int])`: Double click at current location, or at specified coordinates
-- `right_click(x: Optional[int], y: Optional[int])`: Right click at current location, or at specified coordinates
-
-#### Keyboard Operations
-- `type(text: str)`: Type text into VM. Maps to keystrokes, executed with a short delay between each character.
-- `key(combo: str)`: Send key combination (e.g., 'ctrl+c', 'alt+Tab'). Supports multiple key strokes separated by space (e.g., 'shift-h i ctrl+a ctrl+c')
-
-#### Screen Operations
-- `screenshot() -> bytes`: Capture screenshot (BMP format)
-- `width -> int`: Get VM width (1024)
-- `height -> int`: Get VM height (768)
-
-#### Scripting
-- `cmd(command: str, close_after: bool = False)`: Sends a workflow to the VM to open a cmd terminal and input a command. Close_after to close the terminal after running the script. Otherwise the terminal window will remain open.
-- `powershell(command: str, close_after: bool = False)`: Sends a workflow to the VM to open a powershell terminal and input a command. Close_after to close the window after running the script. Otherwise the powershell window will remain open.
-
-#### Control Management
-- `yield_control()`: Transfer control to human operator. This makes all future interactions error until a button is clicked in the UI to grant control back to the agent.
-- `await_control()`: Wait for control to be returned to the agent.
-
-## Advanced Usage
-
-### Async
-All methods on VM and Connection can be made async by adding `.aio()` to the method call.
-
-For example:
 ```python
-from pig import VM
-async def main():
-
-    vm = VM()
-    await vm.create.aio()
-
-    async with vm.session.aio() as conn:
-        await conn.left_click.aio(x=100, y=100)
-        await conn.type.aio("Hello, World!")
+# All operations should use the context manager pattern
+with machine.connect() as conn:
+    # Keyboard
+    conn.type("Hello World")              # Type text
+    conn.key("super")                     # Press Windows key
+    conn.key("ctrl+c ctrl+v")             # Key combinations
+    
+    # Mouse
+    conn.mouse_move(x=100, y=100)         # Move cursor
+    conn.left_click()                     # Click at current position
+    conn.left_click(x=100, y=100)         # Move and click
+    conn.right_click(x=100, y=100)        # Right click
+    conn.double_click(x=100, y=100)       # Double click
+    conn.left_click_drag(x=200, y=200)    # Click and drag
+    
+    # Screen
+    image = conn.screenshot()             # Take screenshot
+    x, y = conn.cursor_position()         # Get cursor position
+    
+    # Control
+    conn.yield_control()                  # Give control to human
+    conn.await_control()                  # Wait for control back
 ```
 
-### Custom Image Configuration
-
-You can create custom VM images to use.
-1. Connect to a machine from your desired base image.
-2. Install your desired applications and configuration.
-3. Use the below CLI command to snapshot the VM into a new image
+### CLI Reference
 
 ```bash
-# Snapshot VM into image
-pig img snapshot --vm YOUR_VM_ID -t YOUR_CHOSEN_NAME
+# List all machines
+pig ls
 
-# View your images
-pig img ls
-```
-
-Future VMs may then be created from these images 
-
-via CLI:
-```bash
-pig create -i IMAGE_ID
-```
-
-or via the SDK:
-```python
-vm = VM(image="IMAGE_ID")
-vm.create()
-```
-
-
-### Temporary VM Sessions
-
-```python
-vm = VM(temporary=True)
-with vm.session() as conn:
-    # VM terminates after block exit, rather than stopping.
-    # This deletes the VM disk, making it no longer usable.
-```
-
-## Configuration
-
-Environment Variables:
-- `PIG_SECRET_KEY`: API authentication key
+# Example output:
+ID                         state    Created
+-------------------------  -------  ----------------
+M-6HNGAXR-NT0B3VA-P33Q0R2  RUNNING  2025-02-10 23:31
