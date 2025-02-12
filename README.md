@@ -26,9 +26,9 @@ Follow [this guide](https://github.com/pig-dot-dev/piglet/) to download it, and 
 piglet
 ```
 
-### Step 3: Run Local Automation
+### Step 3: Call It Locally
 
-The SDK can then be used to call into the Piglet's API.
+The SDK can be used from the same Windows machine to send automations to Piglet.
 
 ```python
 from pig import Client
@@ -43,17 +43,15 @@ with machine.connect() as conn:
     conn.type("hello world!")             # Type text
 ```
 
-### Step 4: Remote Control via Pig
+### Step 4: Call It Over The Internet (Using Pig)
 
 Your Piglet can be controlled over the internet by subscribing it as a machine in Pig's API.
-
+> [Get your API key here](https://pig.dev/alpha)
 
 ```bash
 # Start Piglet pointing to Pig's control server
 piglet --control-host piglet.pig.dev --pig-secret-key SK-YOUR_API_KEY
 ```
-
-> [Get your API key here](https://pig.dev/alpha)
 
 This will register your Piglet as a machine in Pig's API.
 
