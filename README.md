@@ -28,6 +28,8 @@ piglet
 
 ### Step 3: Run Local Automation
 
+The SDK can then be used to call into the Piglet's API.
+
 ```python
 from pig import Client
 client = Client()
