@@ -1,20 +1,19 @@
 import argparse
 
-from pig import VM
+from pig import Client
+
+client = Client()
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--vmid", required=True)
+    parser.add_argument("--machine-id", required=True)
     args = parser.parse_args()
 
-    vm = VM(id=args.vmid)
-    conn = vm.connect()
-
-    # Open search using key shortcut
-    conn.key("h e l l o")
-    # conn.cmd("dir")
-    # conn.powershell("ls", close_after=True)
+    machine = client.machines.get(args.machine_id)
+    with machine.connect() as conn:
+        conn.key("h e l l o")
+        print(conn.cursor_position())
 
 
 if __name__ == "__main__":
