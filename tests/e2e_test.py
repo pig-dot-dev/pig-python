@@ -1,9 +1,10 @@
 import asyncio
 import time
 
-from pig import Client, APIError
+from pig import APIError, Client
 
 client = Client()
+
 
 def test_e2e():
     # This is an E2E test, will take a while
@@ -36,7 +37,7 @@ def test_e2e():
         print("conn.screenshot()")
         ss = conn.screenshot()  # calls screenshot under existing connection ID
         assert len(ss) > 0
-    
+
     print(".stop()")
     vm.stop()  # stops the vm
     assert vm.id is not None

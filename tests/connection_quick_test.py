@@ -1,6 +1,7 @@
 import argparse
 
 from pig import Client
+
 client = Client()
 
 
@@ -13,6 +14,7 @@ def main():
     with machine.connect() as conn:
         conn.key("h e l l o")
         print(conn.cursor_position())
+
 
 if __name__ == "__main__":
     main()

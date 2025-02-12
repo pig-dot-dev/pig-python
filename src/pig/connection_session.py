@@ -1,5 +1,6 @@
 class ConnectionSession:
     """Context manager for machine connections"""
+
     def __init__(self, machine):
         self.machine = machine
         self.connection = None
@@ -20,6 +21,4 @@ class ConnectionSession:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if self.connection:
-            await self.machine._client.connections.delete.aio(
-                self.machine.id, self.connection.id
-            )
+            await self.machine._client.connections.delete.aio(self.machine.id, self.connection.id)

@@ -12,6 +12,7 @@ from .pig import Client
 # Global client
 client = Client()
 
+
 # Additional CRUD calls supported in CLI but not via SDK
 async def get_machines():
     """Fetch Machines from the API"""
@@ -169,6 +170,7 @@ def connect(id):
     with machine.connect() as _:
         pass
 
+
 @cli.command()
 @click.argument("ids", nargs=-1, required=False)
 @click.option("--all", "-a", is_flag=True, help="Start all Machines")
@@ -297,7 +299,7 @@ def snapshot(machine, tag, auto_approve):
 
     click.echo(f"Snapshotting Machine\t{machine}...")
     asyncio.run(snapshot_image(machine, tag))
-    click.echo(f"Image snapshot started, check back at `pig img ls` for state.")
+    click.echo("Image snapshot started, check back at `pig img ls` for state.")
 
 
 # Add img to cli group

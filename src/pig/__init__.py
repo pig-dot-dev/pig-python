@@ -1,8 +1,8 @@
 from .api_client import APIClient, APIError
-from .machines import Machine, RemoteMachine, LocalMachine, MachineType
 from .connections import Connection, Connections
-from .sync_wrapper import AsyncContextError, _MakeSync
+from .machines import LocalMachine, Machine, MachineType, RemoteMachine
 from .pig import Client
+from .sync_wrapper import AsyncContextError, _MakeSync
 
 __all__ = [
     "APIClient",

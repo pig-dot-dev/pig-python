@@ -1,4 +1,3 @@
-import os
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Optional
@@ -7,18 +6,23 @@ from .api_client import APIError
 from .connection_session import ConnectionSession
 from .sync_wrapper import _MakeSync
 
+
 class MachineType(Enum):
     LOCAL = "local"
     REMOTE = "remote"
 
+
 class Machine(ABC):
     """Abstract base class for all machine types"""
+
     @abstractmethod
     def connect(self):
         pass
 
+
 class RemoteMachine(Machine):
     """A remote machine on Pig"""
+
     def __init__(self, client, id: str = None):
         self._client = client
         self.id = id
@@ -27,6 +31,7 @@ class RemoteMachine(Machine):
     # Sync context manager
     def __enter__(self):
         return self
+
     def __exit__(self, exc_type, exc_value, traceback):
         if self._ephemeral:
             self._client.machines.delete(self.id)
@@ -45,12 +50,12 @@ class RemoteMachine(Machine):
     @_MakeSync
     async def connect(self):
         """Get a connection to this machine. Use as an async context manager:
-        
+
         async with machine.connect() as conn:
             await conn.mouse_move(x=100, y=100)
 
         or as a sync context manager:
-        
+
         with machine.connect() as conn:
             conn.mouse_move(x=100, y=100)
         """
@@ -80,8 +85,10 @@ class RemoteMachine(Machine):
         url = self._client._url(MachineType.REMOTE, f"machines/{self.id}")
         await self._client._api_client.delete(url)
 
+
 class LocalMachine(Machine):
     """A local machine running on localhost"""
+
     def __init__(self, client):
         self._client = client
         self.id = "local"
@@ -89,8 +96,10 @@ class LocalMachine(Machine):
     def connect(self):
         return ConnectionSession(self)
 
+
 class Machines:
     """This class communicates with the API for CRUD operations on machines"""
+
     def __init__(self, client):
         self._client = client
 
@@ -99,7 +108,7 @@ class Machines:
         """Create a new remote machine"""
         if self._client.api_key is None:
             raise ValueError("API key not set. Set PIG_SECRET_KEY environment variable or pass to Client constructor.")
-            
+
         url = self._client._api_url("machines")
         data = {"image_id": image_id} if image_id else None
         response = await self._client._api_client.post(url, data=data)
@@ -134,7 +143,7 @@ class Machines:
         url = self._client._api_url(f"machines/{id}")
         await self._client._api_client.get(url)  # Verify machine exists
         return RemoteMachine(self._client, id)
-    
+
     def local(self) -> LocalMachine:
         """Get a local machine instance"""
         return LocalMachine(self._client)

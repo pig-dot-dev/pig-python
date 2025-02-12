@@ -7,6 +7,7 @@ from aiohttp_retry import ExponentialRetry, RetryClient
 
 try:
     from importlib.metadata import version
+
     __version__ = version("pig-python")
 except Exception:
     __version__ = "unknown"
@@ -18,11 +19,13 @@ if os.environ.get("PIG_UI_BASE_URL"):
     if UI_BASE_URL.endswith("/"):
         UI_BASE_URL = UI_BASE_URL[:-1]
 
+
 class APIError(Exception):
     def __init__(self, status_code: int, message: str) -> None:
         self.status_code = status_code
         self.message = message
         super().__init__(f"HTTP {status_code}: {message}")
+
 
 class APIClient:
     def __init__(self, api_key: str) -> None:
@@ -56,11 +59,11 @@ class APIClient:
                 error_body = await response.text()
                 try:
                     error_json = await response.json()
-                    error_msg = error_json.get('detail', error_body)
+                    error_msg = error_json.get("detail", error_body)
                 except Exception:
                     error_msg = error_body
                 raise APIError(response.status, error_msg)
-                
+
             # Handle successful responses
             if not response.content or response.content_length == 0:
                 return {}
@@ -84,13 +87,17 @@ class APIClient:
             async with session.get(url, headers=headers) as response:
                 return await self._handle_response(response, expect_json)
 
-    async def post(self, url: str, data: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, Any]] = None, expect_json: bool = True) -> Union[Dict[str, Any], ClientResponse]:
+    async def post(
+        self, url: str, data: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, Any]] = None, expect_json: bool = True
+    ) -> Union[Dict[str, Any], ClientResponse]:
         print("POST", url)
         async with self._session() as session:
             async with session.post(url, json=data, headers=headers) as response:
                 return await self._handle_response(response, expect_json)
 
-    async def put(self, url: str, data: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, Any]] = None, expect_json: bool = True) -> Union[Dict[str, Any], ClientResponse]:
+    async def put(
+        self, url: str, data: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, Any]] = None, expect_json: bool = True
+    ) -> Union[Dict[str, Any], ClientResponse]:
         print("PUT", url)
         async with self._session() as session:
             async with session.put(url, json=data, headers=headers) as response:

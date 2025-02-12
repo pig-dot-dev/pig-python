@@ -4,10 +4,11 @@ import time
 from typing import Optional, Tuple
 
 from .api_client import APIError
-from .machines import RemoteMachine, MachineType, LocalMachine
+from .machines import LocalMachine, RemoteMachine
 from .sync_wrapper import _MakeSync
 
 UI_BASE_URL = os.environ.get("PIG_UI_BASE_URL", "https://pig.dev")
+
 
 class Connection:
     """Represents an active connection to a machine"""
@@ -127,7 +128,7 @@ class Connection:
         """Yield control of the machine to a human operator"""
         if not isinstance(self.machine, RemoteMachine):
             raise APIError(400, "Control operations only available for remote machines")
-            
+
         url = self._client._api_url(f"machines/{self.machine.id}/pause_bots/true")
         await self._client._api_client.put(url)
         self._logger.info("\nControl has been yielded. \nNavigate to the following URL in your browser to resolve and grant control back to the SDK:")
@@ -138,7 +139,7 @@ class Connection:
         """Awaits for control of the machine to be given back to the bot"""
         if not isinstance(self.machine, RemoteMachine):
             raise APIError(400, "Control operations only available for remote machines")
-            
+
         min_sleep = 1
         max_sleep = 10
         sleeptime = min_sleep
@@ -150,8 +151,10 @@ class Connection:
             time.sleep(sleeptime)
             sleeptime = min(sleeptime * 2, max_sleep)
 
+
 class Connections:
     """Namespace for connection operations"""
+
     def __init__(self, client):
         self._client = client
 
