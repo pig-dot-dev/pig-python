@@ -15,7 +15,7 @@ class Client:
         self._logger = self._setup_logger(log_level)
         self._api_client = APIClient(self.api_key)
 
-        self._api_base = os.environ.get("PIG_API_URL", "https://api.pig.dev").rstrip("/") # API for remote machines
+        self._api_base = os.environ.get("PIG_API_URL", "https://api2.pig.dev").rstrip("/") # API for remote machines
         self._proxy_base = os.environ.get("PIG_PROXY_URL", "https://proxy.pig.dev").rstrip("/") # Proxy API for remote machines
         self._local_base = os.environ.get("PIGLET_LOCAL_URL", "http://localhost:3000").rstrip("/") # Local server for local piglet
         
