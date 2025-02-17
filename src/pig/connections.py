@@ -174,7 +174,7 @@ class Connections:
         if isinstance(machine, RemoteMachine):
             url = self._client._api_url(f"machines/{machine.id}/connections")
             response = await self._client._api_client.post(url)
-            logger = self._client._logger
+            # logger = self._client._logger
             # logger.info("Connected to machine, watch the desktop here:")
             # logger.info(f"-> \033[95m{UI_BASE_URL}/app/machines/{machine.id}?connectionId={response[0]['id']}\033[0m")
             return Connection(machine, response[0]["id"])
