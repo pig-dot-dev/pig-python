@@ -19,15 +19,25 @@ class Connection:
         self.id = connection_id
         self._logger = logging.getLogger(f"pig-{machine.id}")
 
-    @property
-    def width(self) -> int:
+    @_MakeSync
+    async def dimensions(self) -> Tuple[int, int]:
+        """Get the dimensions of the machine"""
+        route = "computer/display/dimensions"
+        headers = {"X-Machine-ID": str(self.machine.id), "X-Connection-ID": str(self.id)}
+        url = self._client._machine_url(self.machine, route)
+        dimensions = await self._client._api_client.get(url, headers=headers)
+        return dimensions["width"], dimensions["height"]
+    
+    @_MakeSync
+    async def width(self) -> int:
         """Get the width of the machine"""
-        return 1024
-
-    @property
-    def height(self) -> int:
+        return (await self.dimensions())[0]
+    
+    @_MakeSync
+    async def height(self) -> int:
         """Get the height of the machine"""
-        return 768
+        return (await self.dimensions())[1]
+
 
     @_MakeSync
     async def key(self, combo: str) -> None:

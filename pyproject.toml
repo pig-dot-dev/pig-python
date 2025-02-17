@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pig-python"
-version = "0.1.0"
+version = "0.1.1"
 authors = [
     { name = "Erik Dunteman", email = "erik@pig.dev" },
 ]
