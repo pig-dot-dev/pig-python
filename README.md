@@ -115,6 +115,7 @@ with machine.connect() as conn:
     # Screen
     image = conn.screenshot()             # Take screenshot
     x, y = conn.cursor_position()         # Get cursor position
+    w, h = conn.dimensions()              # Get machine dimensions
     
     # Control
     conn.yield_control()                  # Give control to human
