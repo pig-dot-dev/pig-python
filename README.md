@@ -23,7 +23,7 @@ Follow [this guide](https://github.com/pig-dot-dev/piglet/) to download it, and 
 
 ```bash
 # Start the Piglet server (exposes localhost:3000)
-piglet
+piglet start
 ```
 
 ### Step 3: Call It Locally
@@ -50,7 +50,7 @@ Your Piglet can be controlled over the internet by subscribing it as a machine i
 
 ```bash
 # Start Piglet pointing to Pig's control server
-piglet --control-host piglet.pig.dev --pig-secret-key SK-YOUR_API_KEY
+piglet join --secret SK-YOUR_API_KEY
 ```
 
 This will register your Piglet as a machine in Pig's API.
