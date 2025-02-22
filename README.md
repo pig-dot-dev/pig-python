@@ -46,7 +46,7 @@ with machine.connect() as conn:
 ### Step 4: Call It Over The Internet (Using Pig)
 
 Your Piglet can be controlled over the internet by subscribing it as a machine in Pig's API.
-> [Get your API key here](https://pig.dev/alpha)
+> [Get your API key here](https://pig.dev/login)
 
 ```bash
 # Start Piglet pointing to Pig's control server
