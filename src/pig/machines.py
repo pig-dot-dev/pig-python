@@ -135,13 +135,14 @@ class Machines:
         return machine
 
     @_MakeSync
-    async def get(self, id: str) -> RemoteMachine:
+    async def get(self, id: str, fetch: bool = True) -> RemoteMachine:
         """Get an existing remote machine by ID"""
         if self._client.api_key is None:
             raise ValueError("API key not set. Set PIG_SECRET_KEY environment variable or pass to Client constructor.")
 
-        url = self._client._api_url(f"machines/{id}")
-        await self._client._api_client.get(url)  # Verify machine exists
+        if fetch:
+            url = self._client._api_url(f"machines/{id}")
+            await self._client._api_client.get(url)  # Verify machine exists
         return RemoteMachine(self._client, id)
 
     def local(self) -> LocalMachine:

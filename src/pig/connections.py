@@ -182,6 +182,17 @@ class Connections:
             return Connection(machine, None)
 
     @_MakeSync
+    async def get(self, machine_id: str, connection_id: str, fetch: bool = True) -> Connection:
+        """Get a connection by ID"""
+        # verify machine exists
+        machine = await self._client.machines.get.aio(machine_id, fetch=fetch)
+        # verify connection exists
+        if fetch:
+            url = self._client._api_url(f"machines/{machine_id}/connections/{connection_id}")
+            await self._client._api_client.get(url)
+        return Connection(machine, connection_id)
+
+    @_MakeSync
     async def delete(self, machine_id: str, connection_id: Optional[str]) -> None:
         """Delete a connection"""
         if connection_id is not None:
