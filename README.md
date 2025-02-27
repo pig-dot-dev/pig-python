@@ -4,7 +4,7 @@ Pig is an API to launch and automate Windows apps. Plug this SDK into your AI Ag
 
 ---
 
-> **Warning**: This API and associated infrastructure are currently in alpha and will likely undergo changes.
+> **Warning**: This API and associated infrastructure are currently in alpha and will undergo breaking changes without warning. Please inform us before you go to prod.
 
 
 ## Getting Started
