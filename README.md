@@ -19,12 +19,16 @@ pip install pig-python
 
 The Piglet is a process that runs on your Windows machine to drive the automations. 
 
-Follow [this guide](https://github.com/pig-dot-dev/piglet/) to download it, and start it with the command:
+Follow [this guide](https://docs.pig.dev/piglet/installation) to download it, and start it with the command:
 
 ```bash
 # Start the Piglet server (exposes localhost:3000)
-piglet
+piglet start
+
+# Join through the Pig control plane
+piglet join --secret SK-YOUR-SECRET-KEY
 ```
+> [Get your API key here](https://pig.dev/app/keys)
 
 ### Step 3: Call It Locally
 
@@ -46,29 +50,8 @@ with machine.connect() as conn:
 ### Step 4: Call It Over The Internet (Using Pig)
 
 Your Piglet can be controlled over the internet by subscribing it as a machine in Pig's API.
-> [Get your API key here](https://pig.dev/alpha)
 
-```bash
-# Start Piglet pointing to Pig's control server
-piglet --control-host piglet.pig.dev --pig-secret-key SK-YOUR_API_KEY
-```
-
-This will register your Piglet as a machine in Pig's API.
-
-Now, from any computer, you can send automations to your connected Piglet.
-
-Use the pig CLI to see your connected machines:
-```bash
-# List available machines
-pig ls
-```
-```
-ID                         state    Created
--------------------------  -------  ----------------
-M-6HNGAXR-NT0B3VA-P33Q0R2  RUNNING  2025-02-10 23:31
-```
-
-And send an automation to it by specifying the machine ID.
+Send an automation to it by specifying the machine ID.
 ```python
 from pig import Client
 client = Client()
