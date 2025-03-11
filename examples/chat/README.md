@@ -1,8 +1,10 @@
 # Windows Computer Use Chat Example
 
-This example runs a chat agent, which can trigger a computer-use agent with a high level task to perform on a connected Windows machine.
+This example runs a chat agent, which can trigger a computer-use agent with a high level task to perform on a connected Windows machine. 
 
 The computer-use agent uses SDK functions provided by Pig's SDK as its tools for `click`, `screenshot`, and more.
+
+The agent and sub-agent are implemented in [LangGraph](https://www.langchain.com/langgraph) using [LangChain](https://www.langchain.com) chat models, though you're free to swap out implementations.
 
 ## Prerequisites
 - A Pig account (free tier available)
@@ -29,4 +31,9 @@ export PIG_MACHINE_ID="your-machine-id"
 ```
 
 
-1. Open `main.py`, insert
+3. Run the agent:
+```bash
+python main.py
+```
+
+Feel free to explore the code in [./agent](./agent) or tweak the prompts in [./agent/prompts](./agent/prompts)
