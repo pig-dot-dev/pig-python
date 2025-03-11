@@ -7,7 +7,7 @@ The computer-use agent uses SDK functions provided by Pig's SDK as its tools for
 The agent and sub-agent are implemented in [LangGraph](https://www.langchain.com/langgraph) using [LangChain](https://www.langchain.com) chat models, and both `OpenAI GPT-4o` and `Anthropic Claude-3.7 Computer Use` are used as the chat and computer-use llms respectively, though you're free to swap out implementations.
 
 ## Prerequisites
-- A Pig account (free tier available)
+- A [Pig account](https://www.pig.dev/app) (free tier available)
 - A connected Windows machine, using [Piglet](https://github.com/pig-dot-dev/piglet). Follow [this guide](https://docs.pig.dev/quickstart/intro) to connect your machine.
 
 ## Setup
