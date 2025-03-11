@@ -1,7 +1,0 @@
-[project]
-name = "chat"
-version = "0.0.0"
-description = "A basic chat agent using Pig"
-readme = "README.md"
-requires-python = ">=3.7"
-dependencies = []
