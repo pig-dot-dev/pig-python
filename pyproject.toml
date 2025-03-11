@@ -51,7 +51,10 @@ lint.select = [
     "B",  # flake8-bugbear
     "N",  # pep8-naming
 ]
-
-line-length = 160
 lint.ignore = []
 lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+line-length = 160
+
+[tool.uv.workspace]
+members = ["examples/chat"]
