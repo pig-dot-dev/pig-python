@@ -1,6 +1,6 @@
 from langgraph.graph import MessagesState, StateGraph, START, END
 from langchain_core.tools import tool
-from langchain_core.messages import ToolMessage, BaseMessage
+from langchain_core.messages import ToolMessage, HumanMessage
 import base64
 from typing import Optional, Tuple, Dict, List
 from .utils import ensure_tools_resolved
@@ -155,10 +155,17 @@ class PigAgent():
         image_data = base64.b64encode(screenshot_bytes).decode()
         
         return {
-            "messages": ToolMessage(
+            "messages": [
+            ToolMessage(
                 tool_call_id=tool_call["id"],
-                content=[{"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_data}"}}]
-            )
+                content = "screenshot captured, see following user message for contents"
+            ), 
+            HumanMessage(
+                content=[{
+                    "type": "image_url", 
+                    "image_url": {"url": f"data:image/png;base64,{image_data}"}}
+                ])
+            ]
         }
         
     @tool

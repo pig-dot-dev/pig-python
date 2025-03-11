@@ -11,8 +11,7 @@ chat_llm = ChatOpenAI(model="gpt-4o") # For the outer chat loop
 computer_use_llm = ChatAnthropic( # For computer use agent
     model="claude-3-7-sonnet-20250219", 
     temperature=0.1, 
-    max_retries=50, 
-    extra_headers={"anthropic-beta": "computer-use-2025-01-24"}
+    max_retries=50
 )
 
 # Initialize our Pig client.
