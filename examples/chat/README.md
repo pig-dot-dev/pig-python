@@ -38,4 +38,4 @@ export PIG_MACHINE_ID="your-machine-id"
 python main.py
 ```
 
-Feel free to explore the code in [./agent](./agent) or tweak the prompts in [./agent/prompts](./agent/prompts)
+Feel free to explore the code in [./agent](./agent) or tweak the prompts in [./agent/prompts](./agent/prompts.py)
